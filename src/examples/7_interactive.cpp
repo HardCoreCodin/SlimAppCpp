@@ -18,7 +18,6 @@ struct GameApp : SlimApp {
         if (key == 'A') move.left     = is_pressed;
         if (key == 'D') move.right    = is_pressed;
     }
-
     void OnUpdate(f32 delta_time) override {
         f32 amount = player.speed * delta_time;
 
@@ -27,14 +26,13 @@ struct GameApp : SlimApp {
         if (move.up)    player.pos.y -= amount;
         if (move.down)  player.pos.y += amount;
     }
-
     void OnRender() override {
         fill({
-                     (int)(player.pos.x - player.size),
-                     (int)(player.pos.x + player.size),
-                     (int)(player.pos.y - player.size),
-                     (int)(player.pos.y + player.size)
-             },
+            (int)(player.pos.x - player.size),
+            (int)(player.pos.x + player.size),
+            (int)(player.pos.y - player.size),
+            (int)(player.pos.y + player.size)
+            },
              window::canvas, Blue
         );
     }

@@ -15,7 +15,6 @@ struct KeyboardApp : public SlimApp {
         if (key == 'A') move.left     = is_pressed;
         if (key == 'D') move.right    = is_pressed;
     }
-
     void OnRender() override {
         using namespace window;
         i32 right  = canvas.dimensions.width / 2 + 114;
