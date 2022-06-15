@@ -27,5 +27,5 @@ add_executable(7_mouse WIN32 src/examples/7_mouse.cpp)
 project(8_keyboard)
 add_executable(8_keyboard WIN32 src/examples/8_keyboard.cpp)
 
-project(9_interactive)
-add_executable(9_interactive WIN32 src/examples/9_game.cpp)
+project(9_game)
+add_executable(9_game WIN32 src/examples/9_game.cpp)
