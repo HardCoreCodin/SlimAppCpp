@@ -11,10 +11,10 @@
 #define COMPILER_GCC 1
     #define COMPILER_CLANG_OR_GCC 1
 #elif defined(_MSC_VER)
-    #define COMPILER_MSVC 1
+#define COMPILER_MSVC 1
 #endif
 
-#ifndef NDEBUG
+#if (defined(SLIMMER) || !defined(NDEBUG))
 #define INLINE
 #elif defined(COMPILER_MSVC)
 #define INLINE inline __forceinline
@@ -432,7 +432,7 @@ struct Pixel {
         return *this;
     }
 
-    Pixel alphaBlendOver(const Pixel &background) const {
+    INLINE Pixel alphaBlendOver(const Pixel &background) const {
         f32 background_opacity = background.opacity * (1.0f - opacity);
         f32 new_opacity = background_opacity + opacity;
         f32 one_over_opacity = new_opacity == 0 ? 1.0f : 1.0f / new_opacity;
@@ -3072,7 +3072,7 @@ void DisplayError(LPTSTR lpszFunction) {
                                 TEXT("%s failed with error code %d as follows:\n%s"), lpszFunction, last_error, lpMsgBuf)))
         printf("FATAL ERROR: Unable to output error code.\n");
 
-    _tprintf(TEXT((LPTSTR)"ERROR: %s\n"), (LPCTSTR)lpDisplayBuf);
+    _tprintf((LPTSTR)"ERROR: %s\n", (LPCTSTR)lpDisplayBuf);
 
     LocalFree(lpMsgBuf);
     LocalFree(lpDisplayBuf);
@@ -3139,17 +3139,17 @@ void os::closeFile(void *handle) {
 }
 
 void* os::openFileForReading(const char* path) {
-    HANDLE handle = CreateFile(path,           // file to open
-                               GENERIC_READ,          // open for reading
-                               FILE_SHARE_READ,       // share for reading
-                               nullptr,                  // default security
-                               OPEN_EXISTING,         // existing file only
-                               FILE_ATTRIBUTE_NORMAL, // normal file
-                               nullptr);                 // no attr. template
+    HANDLE handle = CreateFileA(path,           // file to open
+                                GENERIC_READ,          // open for reading
+                                FILE_SHARE_READ,       // share for reading
+                                nullptr,                  // default security
+                                OPEN_EXISTING,         // existing file only
+                                FILE_ATTRIBUTE_NORMAL, // normal file
+                                nullptr);                 // no attr. template
 #ifndef NDEBUG
     if (handle == INVALID_HANDLE_VALUE) {
-        DisplayError(TEXT((LPTSTR)"CreateFile"));
-        _tprintf(TEXT("Terminal failure: unable to open file \"%s\" for read.\n"), path);
+        DisplayError((LPTSTR)"CreateFile");
+        _tprintf((LPTSTR)"Terminal failure: unable to open file \"%s\" for read.\n", path);
         return nullptr;
     }
 #endif
@@ -3157,17 +3157,17 @@ void* os::openFileForReading(const char* path) {
 }
 
 void* os::openFileForWriting(const char* path) {
-    HANDLE handle = CreateFile(path,           // file to open
-                               GENERIC_WRITE,          // open for writing
-                               0,                      // do not share
-                               nullptr,                   // default security
-                               OPEN_ALWAYS,            // create new or open existing
-                               FILE_ATTRIBUTE_NORMAL,  // normal file
-                               nullptr);
+    HANDLE handle = CreateFileA(path,           // file to open
+                                GENERIC_WRITE,          // open for writing
+                                0,                      // do not share
+                                nullptr,                   // default security
+                                OPEN_ALWAYS,            // create new or open existing
+                                FILE_ATTRIBUTE_NORMAL,  // normal file
+                                nullptr);
 #ifndef NDEBUG
     if (handle == INVALID_HANDLE_VALUE) {
-        DisplayError(TEXT((LPTSTR)"CreateFile"));
-        _tprintf(TEXT("Terminal failure: unable to open file \"%s\" for write.\n"), path);
+        DisplayError((LPTSTR)"CreateFile");
+        _tprintf((LPTSTR)"Terminal failure: unable to open file \"%s\" for write.\n", path);
         return nullptr;
     }
 #endif
@@ -3179,7 +3179,7 @@ bool os::readFromFile(LPVOID out, DWORD size, HANDLE handle) {
     BOOL result = ReadFile(handle, out, size, &bytes_read, nullptr);
 #ifndef NDEBUG
     if (result == FALSE) {
-        DisplayError(TEXT((LPTSTR)"ReadFile"));
+        DisplayError((LPTSTR)"ReadFile");
         printf("Terminal failure: Unable to read from file.\n GetLastError=%08x\n", (unsigned int)GetLastError());
         CloseHandle(handle);
     }
@@ -3192,7 +3192,7 @@ bool os::writeToFile(LPVOID out, DWORD size, HANDLE handle) {
     BOOL result = WriteFile(handle, out, size, &bytes_written, nullptr);
 #ifndef NDEBUG
     if (result == FALSE) {
-        DisplayError(TEXT((LPTSTR)"WriteFile"));
+        DisplayError((LPTSTR)"WriteFile");
         printf("Terminal failure: Unable to write from file.\n GetLastError=%08x\n", (unsigned int)GetLastError());
         CloseHandle(handle);
     }
@@ -3374,7 +3374,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     window_class.hInstance      = hInstance;
     window_class.lpfnWndProc    = WndProc;
     window_class.style          = CS_OWNDC|CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
-    window_class.hCursor        = LoadCursorA(nullptr, IDC_ARROW);
+    window_class.hCursor        = LoadCursorA(nullptr, MAKEINTRESOURCEA(32512));
 
     if (!RegisterClassA(&window_class)) return -1;
 
