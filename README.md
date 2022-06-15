@@ -77,44 +77,44 @@ Well documented example applications cover the features:<br><br>
   <img src="src/examples/4_text.png"><br><br>
   <br>
 
+* <b><u>Files I/O</b>:</u><br><br>
+  <img src="src/examples/5_files.gif"><br><br>
+  Opening/closing and reading/writing files in a platform-agnostic way:<br><br>
+  <img src="src/examples/5_files.png"><br><br>
+  <br>
+ 
+* <b><u>HUD:</b></u><br><br>
+  <img src="src/examples/6_HUD.gif"><br><br>
+  A table of lines with Title and Value columns.<br><br> 
+  <img src="src/examples/6_HUD_lines.png"><br><br>
+  Values can be numeric or strings and can be bound to a boolean for toggling<br><br>
+  <img src="src/examples/6_HUD.png"><br><br>
+  Line height and text color can be controlled globally or per line<br><br>
+  <img src="src/examples/6_HUD_settings.png"><br><br>
+  A typical setup might look like this:<br><br>
+  <img src="src/examples/6_HUD_setup.png"><br><br>
+  Updating the values may look like this:<br><br>
+  <img src="src/examples/6_HUD_update.png"><br><br>
+  Toggled rendering might look like this:<br><br>
+  <img src="src/examples/6_HUD_render.png"><br><br>
+  <br>
+
 * <b><u>Mouse</b>:</u><br><br>
-  <img src="src/examples/5_mouse.gif"><br><br>
+  <img src="src/examples/7_mouse.gif"><br><br>
   Buttons (+wheel), cursor position/movement and 'raw' mouse input (captured outside the window):<br><br>
-  <img src="src/examples/5_mouse.png"><br><br>
+  <img src="src/examples/7_mouse.png"><br><br>
   <br>
 
 * <b><u>Keyboard</b>:</u><br><br>
-  <img src="src/examples/6_keyboard.gif"><br><br>
+  <img src="src/examples/8_keyboard.gif"><br><br>
   General key tracking + built-in tracking of control keys status (Ctrl, Alt, Shift, Space):<br><br>
-  <img src="src/examples/6_keyboard.png"><br><br>
+  <img src="src/examples/8_keyboard.png"><br><br>
   <br>
 
-* <b><u>Interaction</b>:</u><br><br>
-  <img src="src/examples/7_interactive.gif"><br><br>
+* <b><u>Game</b>:</u><br><br>
+  <img src="src/examples/9_game.gif"><br><br>
   Update and Render loop for game-like programming:<br><br>
-  <img src="src/examples/7_interactive.png"><br><br>
-  <br>
-
-* <b><u>HUD:</b></u><br><br>
-  <img src="src/examples/8_HUD.gif"><br><br>
-  A table of lines with Title and Value columns.<br><br> 
-  <img src="src/examples/8_HUD_lines.png"><br><br>
-  Values can be numeric or strings and can be bound to a boolean for toggling<br><br>
-  <img src="src/examples/8_HUD.png"><br><br>
-  Line height and text color can be controlled globally or per line<br><br>
-  <img src="src/examples/8_HUD_settings.png"><br><br>
-  A typical setup might look like this:<br><br>
-  <img src="src/examples/8_HUD_setup.png"><br><br>
-  Updating the values may look like this:<br><br>
-  <img src="src/examples/8_HUD_update.png"><br><br>
-  Toggled rendering might look like this:<br><br>
-  <img src="src/examples/8_HUD_render.png"><br><br>
-  <br>
-
-* <b><u>Files I/O</b>:</u><br><br>
-  <img src="src/examples/9_files.gif"><br><br>
-  Opening/closing and reading/writing files in a platform-agnostic way:<br><br>
-  <img src="src/examples/9_files.png"><br><br>
+  <img src="src/examples/9_game.png"><br><br>
   <br>
  
 <b>SlimApp</b> does not come with any GUI functionality at this point.<br>
