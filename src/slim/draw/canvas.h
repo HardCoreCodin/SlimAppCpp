@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./base.h"
+#include "../core/hud.h"
 
 enum AntiAliasing {
     NoAA,
@@ -81,6 +81,70 @@ struct Canvas {
                 for (u16 x = 0; x < dimensions.width; x++, content_value++, pixel++)
                     *content_value = pixel->opacity ? pixel->asContent(true) : 0;
     }
+
+#ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
+    INLINE void drawText(char *str, i32 x, i32 y, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #ifdef SLIM_VEC2
+    INLINE void drawText(char *str, vec2i position, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawText(char *str, vec2 position, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #endif
+#endif
+
+#ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
+    INLINE void drawNumber(i32 number, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #ifdef SLIM_VEC2
+    INLINE void drawNumber(i32 number, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawNumber(i32 number, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #endif
+#endif
+
+#ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
+    INLINE void drawHUD(const HUD &hud, const RectI *viewport_bounds = nullptr);
+#endif
+
+#ifdef SLIM_ENABLE_CANVAS_LINE_DRAWING
+    INLINE void drawHLine(RangeI x_range, i32 y, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawHLine(i32 x_start, i32 x_end, i32 y, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawVLine(RangeI y_range, i32 x, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawVLine(i32 y_start, i32 y_end, i32 x, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
+    INLINE void drawLine(f32 x1, f32 y1, f32 x2, f32 y2, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
+
+    #ifdef SLIM_VEC2
+    INLINE void drawLine(vec2 from, vec2 to, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
+    #endif
+#endif
+
+#ifdef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
+    INLINE void drawRect(RectI rect, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawRect(Rect rect, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void fillRect(RectI rect, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void fillRect(Rect rect, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+#endif
+
+#ifdef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
+    INLINE void drawTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
+    INLINE void drawTriangle(i32 x1, i32 y1, i32 x2, i32 y2, i32 x3, i32 y3, Color color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr);
+    INLINE void fillTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void fillTriangle(i32 x1, i32 y1, i32 x2, i32 y2, i32 x3, i32 y3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+
+    #ifdef SLIM_VEC2
+    INLINE void drawTriangle(vec2 p1, vec2 p2, vec2 p3, Color color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr);
+    INLINE void fillTriangle(vec2 p1, vec2 p2, vec2 p3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawTriangle(vec2i p1, vec2i p2, vec2i p3, Color color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr);
+    INLINE void fillTriangle(vec2i p1, vec2i p2, vec2i p3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #endif
+#endif
+
+#ifdef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
+    INLINE void fillCircle(i32 center_x, i32 center_y, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawCircle(i32 center_x, i32 center_y, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #ifdef SLIM_VEC2
+    INLINE void drawCircle(vec2i center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void fillCircle(vec2i center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    #endif
+#endif
+
 private:
     static INLINE bool _isTransparentPixelQuad(Pixel *pixel_quad) {
         return pixel_quad->opacity == 0.0f && pixel_quad[1].opacity == 0.0f  && pixel_quad[2].opacity == 0.0f  && pixel_quad[3].opacity == 0.0f;

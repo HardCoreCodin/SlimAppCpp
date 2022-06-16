@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../core/canvas.h"
+#include "./canvas.h"
 
-void drawHLine(RangeI x_range, i32 y, const Canvas &canvas, Color color, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+void _drawHLine(RangeI x_range, i32 y, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
     RangeI y_range{0, canvas.dimensions.height - 1};
 
     if (viewport_bounds) {
@@ -30,11 +30,8 @@ void drawHLine(RangeI x_range, i32 y, const Canvas &canvas, Color color, f32 opa
         for (i32 x = x_range.first; x <= x_range.last; x += 1)
             canvas.setPixel(x, y, color, opacity);
 }
-INLINE void drawHLine(i32 x_start, i32 x_end, i32 y, const Canvas &canvas, Color color, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
-    drawHLine(RangeI{x_start, x_end}, y, canvas, color, opacity, viewport_bounds);
-}
 
-void drawVLine(RangeI y_range, i32 x, const Canvas &canvas, Color color, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+void _drawVLine(RangeI y_range, i32 x, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
     RangeI x_range{0, canvas.dimensions.width - 1};
 
     if (viewport_bounds) {
@@ -62,15 +59,9 @@ void drawVLine(RangeI y_range, i32 x, const Canvas &canvas, Color color, f32 opa
         for (i32 y = y_range.first; y <= y_range.last; y += 1)
             canvas.setPixel(x, y, color, opacity);
 }
-INLINE void drawVLine(i32 y_start, i32 y_end, i32 x, const Canvas &canvas, Color color, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
-    drawVLine(RangeI{y_start, y_end}, x, canvas, color, opacity, viewport_bounds);
-}
 
-void drawLine(f32 x1, f32 y1, f32 z1,
-              f32 x2, f32 y2, f32 z2,
-              const Canvas &canvas,
-              Color color = White, f32 opacity = 1.0f, u8 line_width = 1,
-              const RectI *viewport_bounds = nullptr) {
+void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &canvas,
+              Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
     Range float_x_range{x1 <= x2 ? x1 : x2, x1 <= x2 ? x2 : x1};
     Range float_y_range{y1 <= y2 ? y1 : y2, y1 <= y2 ? y2 : y1};
     if (viewport_bounds) {
@@ -262,11 +253,65 @@ void drawLine(f32 x1, f32 y1, f32 z1,
     }
 }
 
+
+#ifdef SLIM_ENABLE_CANVAS_LINE_DRAWING
+INLINE void Canvas::drawHLine(RangeI x_range, i32 y, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawHLine(x_range, y, *this, color, opacity, viewport_bounds);
+}
+
+INLINE void Canvas::drawHLine(i32 x_start, i32 x_end, i32 y, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawHLine(RangeI{x_start, x_end}, y, *this, color, opacity, viewport_bounds);
+}
+
+INLINE void Canvas::drawVLine(RangeI y_range, i32 x, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawVLine(y_range, x, *this, color, opacity, viewport_bounds);
+}
+
+INLINE void Canvas::drawVLine(i32 y_start, i32 y_end, i32 x, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawVLine(RangeI{y_start, y_end}, x, *this, color, opacity, viewport_bounds);
+}
+
+INLINE void Canvas::drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
+    _drawLine(x1, y1, z1, x2, y2, z2, *this, color, opacity, line_width, viewport_bounds);
+}
+INLINE void Canvas::drawLine(f32 x1, f32 y1, f32 x2, f32 y2, Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
+    _drawLine(x1, y1, 0, x2, y2, 0, *this, color, opacity, line_width, viewport_bounds);
+}
+
 #ifdef SLIM_VEC2
-void drawLine(vec2 from, vec2 to,
-              const Canvas &canvas,
-              Color color = White, f32 opacity = 1.0f, u8 line_width = 1,
-              const RectI *viewport_bounds = nullptr) {
-    drawLine(from.x, from.y, 0, to.x, to.y, 0, canvas, color, opacity, line_width, viewport_bounds);
+INLINE void Canvas::drawLine(vec2 from, vec2 to, Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
+    _drawLine(from.x, from.y, 0, to.x, to.y, 0, *this, color, opacity, line_width, viewport_bounds);
+}
+#endif
+#endif
+
+
+
+INLINE void drawHLine(RangeI x_range, i32 y, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawHLine(x_range, y, canvas, color, opacity, viewport_bounds);
+}
+
+INLINE void drawHLine(i32 x_start, i32 x_end, i32 y, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawHLine(RangeI{x_start, x_end}, y, canvas, color, opacity, viewport_bounds);
+}
+
+INLINE void drawVLine(RangeI y_range, i32 x, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawVLine(y_range, x, canvas, color, opacity, viewport_bounds);
+}
+INLINE void drawVLine(i32 y_start, i32 y_end, i32 x, const Canvas &canvas, Color color, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawVLine(RangeI{y_start, y_end}, x, canvas, color, opacity, viewport_bounds);
+}
+
+INLINE void drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) {
+    _drawLine(x1, y1, z1, x2, y2, z2, canvas, color, opacity, line_width, viewport_bounds);
+}
+
+INLINE void drawLine(f32 x1, f32 y1, f32 x2, f32 y2, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) {
+    _drawLine(x1, y1, 0, x2, y2, 0, canvas, color, opacity, line_width, viewport_bounds);
+}
+
+#ifdef SLIM_VEC2
+void drawLine(vec2 from, vec2 to, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) {
+    _drawLine(from.x, from.y, 0, to.x, to.y, 0, canvas, color, opacity, line_width, viewport_bounds);
 }
 #endif

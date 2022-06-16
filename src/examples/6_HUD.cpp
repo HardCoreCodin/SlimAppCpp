@@ -1,5 +1,6 @@
+#define SLIM_ENABLE_CANVAS_HUD_DRAWING
+
 #include "../slim/app.h"
-#include "../slim/core/hud.h"
 #include "../slim/draw/hud.h"
 // Or using the single-header file:
 //#include "../slim.h"
@@ -23,7 +24,7 @@ struct HUDApp : SlimApp {
     }
     void OnRender() override {
         if (hud.enabled)
-            draw(hud, window::canvas);
+            window::canvas.drawHUD(hud);
     }
     void OnWindowResize(u16 width, u16 height) override {
         Width.value = (i32)width;

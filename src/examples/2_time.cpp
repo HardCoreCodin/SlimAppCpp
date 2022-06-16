@@ -1,7 +1,6 @@
 #include "../slim/app.h"
-#include "../slim/core/string.h"
 // Or using the single-header file:
-// #include "../slim.h"
+//#include "../slim.h"
 
 // To provide custom behaviour, create a sub-struct of slim and override methods:
 struct TimerApp : SlimApp {

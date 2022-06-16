@@ -1,8 +1,11 @@
+#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
+#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
+
 #include "../slim/app.h"
 #include "../slim/draw/text.h"
 #include "../slim/draw/rectangle.h"
 // Or using the single-header file:
-// #include "../slim.h"
+//#include "../slim.h"
 
 struct KeyboardApp : public SlimApp {
     Move move{};
@@ -17,6 +20,8 @@ struct KeyboardApp : public SlimApp {
     }
     void OnRender() override {
         using namespace window;
+        using namespace controls;
+
         i32 right  = canvas.dimensions.width / 2 + 114;
         i32 bottom = canvas.dimensions.height / 2 + 54;
         RectI rect;
@@ -26,33 +31,33 @@ struct KeyboardApp : public SlimApp {
         rect.left = rect.right - 228;
         rect.bottom = bottom - 2;
         rect.top = rect.bottom - 98;
-        draw(rect, canvas, White);
+        canvas.drawRect(rect);
 
         // Draw the 'A' key:
         rect.right = right - 170;
         rect.left = rect.right - 18;
         rect.bottom = bottom - 46;
         rect.top = rect.bottom - 18;
-        fill(rect, canvas,  move.left ? White : Grey);
-        draw((char*)"A", rect.left + 2, rect.top - 1, canvas, move.left ? Grey : White);
+        canvas.fillRect(rect, move.left ? White : Grey);
+        canvas.drawText((char*)"A", rect.left + 2, rect.top - 1, move.left ? Grey : White);
 
         // Draw the 'S' key:
         rect.left += 22;
         rect.right += 22;
-        fill(rect, canvas,  move.backward ? White : Grey);
-        draw((char*)"S", rect.left + 2, rect.top - 1, canvas, move.backward ? Grey : White);
+        canvas.fillRect(rect, move.backward ? White : Grey);
+        canvas.drawText((char*)"S", rect.left + 2, rect.top - 1, move.backward ? Grey : White);
 
         // Draw the 'D' key:
         rect.left += 22;
         rect.right += 22;
-        fill(rect, canvas,  move.right ? White : Grey);
-        draw((char*)"D", rect.left + 2, rect.top - 1, canvas, move.right ? Grey : White);
+        canvas.fillRect(rect, move.right ? White : Grey);
+        canvas.drawText((char*)"D", rect.left + 2, rect.top - 1, move.right ? Grey : White);
 
         // Draw the 'D' key:
         rect.left += 22;
         rect.right += 22;
-        fill(rect, canvas,  move.down ? White : Grey);
-        draw((char*)"F", rect.left + 2, rect.top - 1, canvas, move.down ? Grey : White);
+        canvas.fillRect(rect, move.down ? White : Grey);
+        canvas.drawText((char*)"F", rect.left + 2, rect.top - 1, move.down ? Grey : White);
 
         // Draw the 'Q' key:
         rect.left -= 28 * 3;
@@ -63,8 +68,8 @@ struct KeyboardApp : public SlimApp {
         // Draw the 'W' key:
         rect.left += 22;
         rect.right += 22;
-        fill(rect, canvas,  move.forward ? White : Grey);
-        draw((char*)"W", rect.left + 2, rect.top - 1, canvas, move.forward ? Grey : White);
+        canvas.fillRect(rect, move.forward ? White : Grey);
+        canvas.drawText((char*)"W", rect.left + 2, rect.top - 1, move.forward ? Grey : White);
 
         // Draw the 'E' key:
         rect.left += 22;
@@ -73,8 +78,8 @@ struct KeyboardApp : public SlimApp {
         // Draw the 'R' key:
         rect.left += 22;
         rect.right += 22;
-        fill(rect, canvas,  move.up ? White : Grey);
-        draw((char*)"R", rect.left + 2, rect.top - 1, canvas, move.up ? Grey : White);
+        canvas.fillRect(rect, move.up ? White : Grey);
+        canvas.drawText((char*)"R", rect.left + 2, rect.top - 1, move.up ? Grey : White);
 
 
         // Draw the left Ctrl key:
@@ -82,45 +87,45 @@ struct KeyboardApp : public SlimApp {
         rect.left = rect.right - 26;
         rect.bottom = bottom - 6;
         rect.top = rect.bottom - 16;
-        fill(rect, canvas,  controls::is_pressed::ctrl ? Blue : Cyan);
+        canvas.fillRect(rect, is_pressed::ctrl ? Blue : Cyan);
 
         // Draw the left Alt key:
         rect.left += 30;
         rect.right += 30;
-        fill(rect, canvas,  controls::is_pressed::alt ? Red : Magenta);
+        canvas.fillRect(rect, is_pressed::alt ? Red : Magenta);
 
         // Draw the left Shift key:
         rect.left -= 30;
         rect.right -= 15;
         rect.top -= 20;
         rect.bottom -= 20;
-        fill(rect, canvas,  controls::is_pressed::shift ? Green : Yellow);
+        canvas.fillRect(rect, is_pressed::shift ? Green : Yellow);
 
         // Draw the right Ctrl key:
         rect.right = right - 4;
         rect.left = rect.right - 26;
         rect.bottom = bottom - 6;
         rect.top = rect.bottom - 16;
-        fill(rect, canvas,  controls::is_pressed::ctrl ? Blue : Cyan);
+        canvas.fillRect(rect, is_pressed::ctrl ? Blue : Cyan);
 
         // Draw the right Alt key:
         rect.left -= 30;
         rect.right -= 30;
-        fill(rect, canvas,  controls::is_pressed::alt ? Red : Magenta);
+        canvas.fillRect(rect, is_pressed::alt ? Red : Magenta);
 
         // Draw the right Shift key:
         rect.left += 15;
         rect.right += 30;
         rect.top -= 20;
         rect.bottom -= 20;
-        fill(rect, canvas,  controls::is_pressed::shift ? Green : Yellow);
+        canvas.fillRect(rect, is_pressed::shift ? Green : Yellow);
 
         // Draw the Space key:
         rect.right = right - 64;
         rect.left = rect.right - 102;
         rect.bottom = bottom - 6;
         rect.top = rect.bottom - 16;
-        fill(rect, canvas,  controls::is_pressed::space ? White : Grey);
+        canvas.fillRect(rect, is_pressed::space ? White : Grey);
     }
 };
 

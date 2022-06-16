@@ -1,8 +1,10 @@
-#include "../slim/app.h"
+#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
+
 #include "../slim/math/vec2.h"
+#include "../slim/app.h"
 #include "../slim/draw/rectangle.h"
 // Or using the single-header file:
-// #include "../slim.h"
+//#include "../slim.h"
 
 struct GameApp : SlimApp {
     struct Player {
@@ -27,14 +29,13 @@ struct GameApp : SlimApp {
         if (move.down)  player.pos.y += amount;
     }
     void OnRender() override {
-        fill({
+        RectI rect{
             (int)(player.pos.x - player.size),
             (int)(player.pos.x + player.size),
             (int)(player.pos.y - player.size),
             (int)(player.pos.y + player.size)
-            },
-             window::canvas, Blue
-        );
+        };
+        window::canvas.fillRect(rect, Blue);
     }
 };
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/canvas.h"
+#include "canvas.h"
 
 #define LINE_HEIGHT 30
 #define FIRST_CHARACTER_CODE 32
@@ -109,7 +109,7 @@ u8 *char_addr[] = {bitmap_32,bitmap_33,bitmap_34,bitmap_35,bitmap_36,bitmap_37,b
 
 
 
-void draw(char *str, i32 x, i32 y, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, RectI *viewport_bounds = nullptr) {
+void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
     RectI bounds{0, canvas.dimensions.width - 1, 0, canvas.dimensions.height - 1};
     if (viewport_bounds) {
         x += viewport_bounds->left;
@@ -176,11 +176,30 @@ void draw(char *str, i32 x, i32 y, const Canvas &canvas, Color color = White, f3
     }
 }
 
-#ifdef SLIM_VEC2
-void draw(char *str, vec2i position, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, RectI *viewport_bounds = nullptr) {
-    draw(str, position.x, position.y, canvas, color, opacity, viewport_bounds);
+#ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
+INLINE void Canvas::drawText(char *str, i32 x, i32 y, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawText(str, x, y, *this, color, opacity, viewport_bounds);
 }
-void draw(char *str, vec2 position, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, RectI *viewport_bounds = nullptr) {
-    draw(str, (i32)position.x, (i32)position.y, canvas, color, opacity, viewport_bounds);
+#ifdef SLIM_VEC2
+INLINE void Canvas::drawText(char *str, vec2i position, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawText(str, position.x, position.y, *this, color, opacity, viewport_bounds);
+}
+INLINE void Canvas::drawText(char *str, vec2 position, Color color, f32 opacity, const RectI *viewport_bounds) {
+    _drawText(str, (i32)position.x, (i32)position.y, *this, color, opacity, viewport_bounds);
+}
+#endif
+#endif
+
+
+INLINE void drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawText(str, x, y, canvas, color, opacity, viewport_bounds);
+}
+
+#ifdef SLIM_VEC2
+INLINE void drawText(char *str, vec2i position, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawText(str, position.x, position.y, canvas, color, opacity, viewport_bounds);
+}
+INLINE void drawText(char *str, vec2 position, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
+    _drawText(str, (i32)position.x, (i32)position.y, canvas, color, opacity, viewport_bounds);
 }
 #endif
