@@ -42,24 +42,24 @@ struct MouseApp : SlimApp {
             rect.right = 50;
             rect.top = 40;
             rect.bottom = 120;
-            canvas.fillRect(rect, left_button.is_pressed ? Blue : Cyan);
+            canvas.fillRect(rect, left_button.is_pressed ? BrightBlue : BrightCyan);
 
             // Draw the middle mouse button:
             rect.left += 40;
             rect.right += 40;
-            canvas.fillRect(rect, middle_button.is_pressed ? Green : Yellow);
+            canvas.fillRect(rect, middle_button.is_pressed ? BrightGreen : BrightYellow);
 
             // Draw the right mouse button:
             rect.left += 40;
             rect.right += 40;
-            canvas.fillRect(rect, right_button.is_pressed ? Red : Magenta);
+            canvas.fillRect(rect, right_button.is_pressed ? BrightRed : BrightMagenta);
 
             // Draw the mouse wheel:
             rect.left = 60;
             rect.right = 80;
             rect.top = 60;
             rect.bottom = 100;
-            canvas.fillRect(rect, Grey);
+            canvas.fillRect(rect, DarkGrey);
 
             // Draw a marker representing the state of the mouse wheel:
             rect.left += 2;
@@ -92,77 +92,80 @@ struct MouseApp : SlimApp {
 
         // Draw mouse coords
         {
-            i32 x1 = 150;
+            i32 x1 = 200;
             i32 x2 = x1 + FONT_WIDTH * 13;
             i32 x3 = x2 + FONT_WIDTH * 5;
 
-            i32 y = 8;
+            i32 y = 30;
             canvas.drawText((char*)"X", x2 - FONT_WIDTH * 2, y);
             canvas.drawText((char*)"Y", x3 - FONT_WIDTH * 2, y);
-            y += 2;
+            y += 6;
 
             // Draw Cursor position coordinates:
-            y += FONT_HEIGHT + 4;
+            y += FONT_HEIGHT + 14;
             canvas.drawText((char*)"Cursor  :", x1, y);
             canvas.drawNumber(pos_x, x2, y);
             canvas.drawNumber(pos_y, x3, y);
 
             // Draw Raw position coordinates:
-            y += FONT_HEIGHT + 2;
-            canvas.drawText((char*)"RawInput:", x1, y, Grey);
-            canvas.drawNumber(raw_pos.x, x2, y, Grey);
-            canvas.drawNumber(raw_pos.y, x3, y, Grey);
+            y += FONT_HEIGHT + 6;
+            canvas.drawText((char*)"RawInput:", x1, y, BrightGrey);
+            canvas.drawNumber(raw_pos.x, x2, y, BrightGrey);
+            canvas.drawNumber(raw_pos.y, x3, y, BrightGrey);
 
             // Draw LMB position coordinates:
-            y += FONT_HEIGHT + 4;
-            canvas.drawText((char*)"LMB Down:", x1, y, Blue);
-            canvas.drawNumber(left_button.down_pos_x, x2, y, Blue);
-            canvas.drawNumber(left_button.down_pos_y, x3, y, Blue);
-            y += FONT_HEIGHT + 2;
-            canvas.drawText((char*)"LMB   Up:", x1, y, Cyan);
-            canvas.drawNumber(left_button.up_pos_x, x2, y, Cyan);
-            canvas.drawNumber(left_button.up_pos_y, x3, y, Cyan);
+            y += FONT_HEIGHT + 14;
+            canvas.drawText((char*)"LMB Down:", x1, y, BrightBlue);
+            canvas.drawNumber(left_button.down_pos_x, x2, y, BrightBlue);
+            canvas.drawNumber(left_button.down_pos_y, x3, y, BrightBlue);
+            y += FONT_HEIGHT + 6;
+            canvas.drawText((char*)"LMB   Up:", x1, y, BrightCyan);
+            canvas.drawNumber(left_button.up_pos_x, x2, y, BrightCyan);
+            canvas.drawNumber(left_button.up_pos_y, x3, y, BrightCyan);
 
             // Draw MMB position coordinates:
-            y += FONT_HEIGHT + 4;
-            canvas.drawText((char*)"MMB Down:", x1, y, Green);
-            canvas.drawNumber(middle_button.down_pos_x, x2, y, Green);
-            canvas.drawNumber(middle_button.down_pos_y, x3, y, Green);
-            y += FONT_HEIGHT + 2;
-            canvas.drawText((char*)"MMB   Up:", x1, y, Yellow);
-            canvas.drawNumber(middle_button.up_pos_x, x2, y, Yellow);
-            canvas.drawNumber(middle_button.up_pos_y, x3, y, Yellow);
+            y += FONT_HEIGHT + 14;
+            canvas.drawText((char*)"MMB Down:", x1, y, BrightGreen);
+            canvas.drawNumber(middle_button.down_pos_x, x2, y, BrightGreen);
+            canvas.drawNumber(middle_button.down_pos_y, x3, y, BrightGreen);
+            y += FONT_HEIGHT + 6;
+            canvas.drawText((char*)"MMB   Up:", x1, y, BrightYellow);
+            canvas.drawNumber(middle_button.up_pos_x, x2, y, BrightYellow);
+            canvas.drawNumber(middle_button.up_pos_y, x3, y, BrightYellow);
 
             // Draw MMB position coordinates:
-            y += FONT_HEIGHT + 4;
-            canvas.drawText((char*)"RMB Down:", x1, y, Red);
-            canvas.drawNumber(right_button.down_pos_x, x2, y, Red);
-            canvas.drawNumber(right_button.down_pos_y, x3, y, Red);
-            y += FONT_HEIGHT + 2;
-            canvas.drawText((char*)"RMB   Up:", x1, y, Magenta);
-            canvas.drawNumber(right_button.up_pos_x, x2, y, Magenta);
-            canvas.drawNumber(right_button.up_pos_y, x3, y, Magenta);
+            y += FONT_HEIGHT + 14;
+            canvas.drawText((char*)"RMB Down:", x1, y, BrightRed);
+            canvas.drawNumber(right_button.down_pos_x, x2, y, BrightRed);
+            canvas.drawNumber(right_button.down_pos_y, x3, y, BrightRed);
+            y += FONT_HEIGHT + 6;
+            canvas.drawText((char*)"RMB   Up:", x1, y, BrightMagenta);
+            canvas.drawNumber(right_button.up_pos_x, x2, y, BrightMagenta);
+            canvas.drawNumber(right_button.up_pos_y, x3, y, BrightMagenta);
         }
 
         // Draw mouse double-click area:
         {
             // Draw double-click area:
-            rect.left = 140;
-            rect.right = 460;
-            rect.top = 258;
-            rect.bottom = 290;
+            rect.left = 200 - 5;
+            rect.right = 350 - 5;
+            rect.top = 260;
+            rect.bottom = 282;
             canvas.drawRect(rect);
 
             rect.left += 5;
             rect.top += 5;
             if (is_captured) {
-                canvas.drawText((char*)"Captured!",
-                     rect.left, rect.top, Red);
-                canvas.drawText((char*)"Double-click to release...",
-                     8, rect.bottom + 30, Cyan);
+                canvas.drawText(
+                        (char*)"Captured!",
+                     rect.left, rect.top, BrightRed);
+                canvas.drawText(
+                        (char*)"Double-click anywhere to release...",
+                     20, rect.bottom + 30, BrightCyan);
             } else
-                canvas.drawText((char*)"Double-click me!",
-                     rect.left, rect.top, Green);
+                canvas.drawText(
+                        (char*)"Double-click me!",
+                     rect.left, rect.top, BrightGreen);
 
             if (double_clicked) {
                 double_clicked = false;

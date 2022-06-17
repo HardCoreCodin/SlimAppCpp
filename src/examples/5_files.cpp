@@ -10,15 +10,14 @@ static char file_str[file_buffer_size];
 
 struct FilesApp : SlimApp {
     FilesApp() {
-        using namespace os;
-        void* f = openFileForReading(__FILE__);
-        readFromFile(file_str,
-                     file_buffer_size, f);
-        closeFile(f);
+        void* f = os::openFileForReading(__FILE__);
+        os::readFromFile(file_str,
+                         file_buffer_size, f);
+        os::closeFile(f);
     }
 
     void OnRender() override {
-        window::canvas.drawText(file_str, 5, 5, Green);
+        window::canvas.drawText(file_str, 5, 5);
     }
 };
 

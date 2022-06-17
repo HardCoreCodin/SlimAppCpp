@@ -92,8 +92,8 @@ typedef double f64;
 #endif
 
 
-#define FONT_WIDTH 18
-#define FONT_HEIGHT 24
+#define FONT_WIDTH 9
+#define FONT_HEIGHT 12
 
 #define TAU 6.28f
 #define COLOR_COMPONENT_TO_FLOAT 0.00392156862f
@@ -2506,8 +2506,8 @@ void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     const bool draw_left = bounds.x_range[rect.left];
     const bool draw_right = bounds.x_range[rect.right];
 
-    const bool draw_horizontal = draw_left || draw_right;
-    const bool draw_vertical = draw_top || draw_bottom;
+    const bool draw_horizontal = draw_top || draw_bottom;
+    const bool draw_vertical = draw_left || draw_right;
     if (!(draw_horizontal || draw_vertical))
         return;
 
@@ -2959,11 +2959,11 @@ INLINE void Canvas::fillTriangle(vec2 p1, vec2 p2, vec2 p3, Color color, f32 opa
 }
 
 INLINE void Canvas::drawTriangle(vec2i p1, vec2i p2, vec2i p3, Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
-    _drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, *this, color, opacity, line_width, viewport_bounds);
+    _drawTriangle((f32)p1.x, (f32)p1.y, (f32)p2.x, (f32)p2.y, (f32)p3.x, (f32)p3.y, *this, color, opacity, line_width, viewport_bounds);
 }
 
 INLINE void Canvas::fillTriangle(vec2i p1, vec2i p2, vec2i p3, Color color, f32 opacity, const RectI *viewport_bounds) {
-    _fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, *this, color, opacity, viewport_bounds);
+    _fillTriangle((f32)p1.x, (f32)p1.y, (f32)p2.x, (f32)p2.y, (f32)p3.x, (f32)p3.y, *this, color, opacity, viewport_bounds);
 }
 #endif
 #endif
@@ -3015,21 +3015,23 @@ void fillTriangle(vec2 p1, vec2 p2, vec2 p3, const Canvas &canvas,
 void drawTriangle(vec2i p1, vec2i p2, vec2i p3, const Canvas &canvas,
                   Color color = White, f32 opacity = 0.5f, u8 line_width = 0,
                   const RectI *viewport_bounds = nullptr) {
-    _drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, canvas, color, opacity, line_width, viewport_bounds);
+    _drawTriangle((f32)p1.x, (f32)p1.y, (f32)p2.x, (f32)p2.y, (f32)p3.x, (f32)p3.y, canvas, color, opacity, line_width, viewport_bounds);
 }
 
 void fillTriangle(vec2i p1, vec2i p2, vec2i p3,
                   const Canvas &canvas,
                   Color color = White, f32 opacity = 1.0f,
                   const RectI *viewport_bounds = nullptr) {
-    _fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, canvas, color, opacity, viewport_bounds);
+    _fillTriangle((f32)p1.x, (f32)p1.y, (f32)p2.x, (f32)p2.y, (f32)p3.x, (f32)p3.y, canvas, color, opacity, viewport_bounds);
 }
 #endif
 
 
-#define LINE_HEIGHT 30
+#define LINE_HEIGHT 14
 #define FIRST_CHARACTER_CODE 32
 #define LAST_CHARACTER_CODE 126
+#define INTERNAL_FONT_WIDTH (FONT_WIDTH * 2)
+#define INTERNAL_FONT_HEIGHT (FONT_HEIGHT * 2)
 
 // Header File for SSD1306 characters
 // Generated with TTF2BMH
@@ -3135,25 +3137,29 @@ u8 *char_addr[] = {bitmap_32,bitmap_33,bitmap_34,bitmap_35,bitmap_36,bitmap_37,b
 
 
 void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
-    RectI bounds{0, canvas.dimensions.width - 1, 0, canvas.dimensions.height - 1};
+    RectI bounds{
+            0, canvas.dimensions.width - 1,
+            0, canvas.dimensions.height - 1
+    };
     if (viewport_bounds) {
         x += viewport_bounds->left;
         y += viewport_bounds->top;
         bounds -= *viewport_bounds;
     }
 
-    if (x < bounds.left || x > (bounds.right - FONT_WIDTH) ||
-        y < bounds.top || y > (bounds.bottom - FONT_HEIGHT))
+    if (x < bounds.left || x > (bounds.right - INTERNAL_FONT_WIDTH) ||
+        y < bounds.top || y > (bounds.bottom - INTERNAL_FONT_HEIGHT))
         return;
 
     color.toGamma();
 
+    f32 pixel_opacity;
     u16 current_x = (u16)x;
     u16 current_y = (u16)y;
     u16 pixel_x, sub_pixel_x;
     u16 pixel_y, sub_pixel_y;
     u16 t_offset;
-    u8* byte;
+    u8 *byte_ptr, byte, next_column_byte;
     char character = *str;
     while (character) {
         if (character == '\n') {
@@ -3167,35 +3173,52 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
             current_x += t_offset;
         } else if (character >= FIRST_CHARACTER_CODE &&
                    character <= LAST_CHARACTER_CODE) {
-            byte = char_addr[character - FIRST_CHARACTER_CODE];
+            byte_ptr = char_addr[character - FIRST_CHARACTER_CODE];
+            byte = *byte_ptr;
+            next_column_byte = *(byte_ptr + 1);
             for (int i = 1; i < 4; i++) {
                 pixel_x = current_x;
                 pixel_y = current_y + i * FONT_HEIGHT / 3;
-                for (int w = 0; w < FONT_WIDTH ; w++) {
-                    for (int h = 0; h < FONT_HEIGHT/3; h++) {
+                for (int w = 0; w < INTERNAL_FONT_WIDTH ; w += 2) {
+                    for (int h = 0; h < 8; h += 2) {
                         /* skip background bits */
-                        if (*byte & (0x80  >> h)) {
-                            if (canvas.antialias == SSAA) {
-                                sub_pixel_x = pixel_x << 1;
-                                sub_pixel_y = pixel_y << 1;
-                                canvas.setPixel(sub_pixel_x + 0, sub_pixel_y + 0, color, opacity);
-                                canvas.setPixel(sub_pixel_x + 1, sub_pixel_y + 0, color, opacity);
-                                canvas.setPixel(sub_pixel_x + 0, sub_pixel_y + 1, color, opacity);
-                                canvas.setPixel(sub_pixel_x + 1, sub_pixel_y + 1, color, opacity);
-                            } else
-                                canvas.setPixel(pixel_x, pixel_y, color, opacity);
+                        if (canvas.antialias == SSAA) {
+                            sub_pixel_x = pixel_x << 1;
+                            sub_pixel_y = pixel_y << 1;
+
+                            if (byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x, sub_pixel_y + 1, color, opacity);
+                            if (byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x, sub_pixel_y, color, opacity);
+                            if (next_column_byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x+1, sub_pixel_y + 1, color, opacity);
+                            if (next_column_byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x+1, sub_pixel_y, color, opacity);
+                        } else {
+                            pixel_opacity = (byte & (0x80 >> h)) ? 0.25f : 0;
+                            if (byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
+                            if (next_column_byte & (0x80 >> h)) pixel_opacity += 0.25f;
+                            if (next_column_byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
+                            if (pixel_opacity != 0.0f)
+                                canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity * opacity);
                         }
 
                         pixel_y--;
                     }
-                    byte++;
+                    byte_ptr += 2;
+                    byte = *byte_ptr;
+                    next_column_byte = *(byte_ptr + 1);
+
                     pixel_y += FONT_HEIGHT / 3;
                     pixel_x++;
                 }
             }
+
             current_x += FONT_WIDTH;
-            if (current_x + FONT_WIDTH > bounds.right)
-                return;
+            if (current_x + FONT_WIDTH > bounds.right) {
+                if (current_y + FONT_HEIGHT > bounds.bottom)
+                    break;
+
+                while (character && character != '\n') character = *++str;
+                current_x = (u16)x;
+                current_y += LINE_HEIGHT;
+            }
         }
         character = *++str;
     }

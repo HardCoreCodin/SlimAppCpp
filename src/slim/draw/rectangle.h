@@ -17,8 +17,8 @@ void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     const bool draw_left = bounds.x_range[rect.left];
     const bool draw_right = bounds.x_range[rect.right];
 
-    const bool draw_horizontal = draw_left || draw_right;
-    const bool draw_vertical = draw_top || draw_bottom;
+    const bool draw_horizontal = draw_top || draw_bottom;
+    const bool draw_vertical = draw_left || draw_right;
     if (!(draw_horizontal || draw_vertical))
         return;
 
