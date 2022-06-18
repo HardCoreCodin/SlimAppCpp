@@ -1,3 +1,5 @@
+#define SLIMMER
+#define SLIM_DISABLE_ALL_CANVAS_DRAWING
 #define SLIM_ENABLE_CANVAS_HUD_DRAWING
 
 #include "../slim/app.h"
@@ -6,6 +8,8 @@
 //#include "../slim.h"
 
 struct HUDApp : SlimApp {
+    Canvas canvas;
+
     // HUD:
     HUDLine Fps{   (char*)"Fps    : "};
     HUDLine Mfs{   (char*)"Mic-s/f: "};
@@ -23,10 +27,14 @@ struct HUDApp : SlimApp {
             hud.enabled = !hud.enabled;
     }
     void OnRender() override {
+        canvas.clear();
         if (hud.enabled)
-            window::canvas.drawHUD(hud);
+            canvas.drawHUD(hud);
+        canvas.drawToWindow();
     }
+
     void OnWindowResize(u16 width, u16 height) override {
+        canvas.dimensions.update(width, height);
         Width.value = (i32)width;
         Height.value = (i32)height;
     }

@@ -122,8 +122,8 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
         bounds -= *viewport_bounds;
     }
 
-    if (x < bounds.left || x > (bounds.right - INTERNAL_FONT_WIDTH) ||
-        y < bounds.top || y > (bounds.bottom - INTERNAL_FONT_HEIGHT))
+    if (x + FONT_WIDTH < bounds.left || x - FONT_WIDTH > bounds.right ||
+        y + FONT_HEIGHT < bounds.top || y - FONT_HEIGHT > bounds.bottom)
         return;
 
     color.toGamma();
@@ -138,7 +138,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
     char character = *str;
     while (character) {
         if (character == '\n') {
-            if (current_y + FONT_HEIGHT > bounds.bottom)
+            if (current_y > bounds.bottom)
                 break;
 
             current_x = (u16)x;
@@ -157,21 +157,23 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
                 for (int w = 0; w < INTERNAL_FONT_WIDTH ; w += 2) {
                     for (int h = 0; h < 8; h += 2) {
                         /* skip background bits */
-                        if (canvas.antialias == SSAA) {
-                            sub_pixel_x = pixel_x << 1;
-                            sub_pixel_y = pixel_y << 1;
+                        if (bounds.contains(pixel_x, pixel_y)) {
+                            if (canvas.antialias == SSAA) {
+                                sub_pixel_x = pixel_x << 1;
+                                sub_pixel_y = pixel_y << 1;
 
-                            if (byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x, sub_pixel_y + 1, color, opacity);
-                            if (byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x, sub_pixel_y, color, opacity);
-                            if (next_column_byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x+1, sub_pixel_y + 1, color, opacity);
-                            if (next_column_byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x+1, sub_pixel_y, color, opacity);
-                        } else {
-                            pixel_opacity = (byte & (0x80 >> h)) ? 0.25f : 0;
-                            if (byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
-                            if (next_column_byte & (0x80 >> h)) pixel_opacity += 0.25f;
-                            if (next_column_byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
-                            if (pixel_opacity != 0.0f)
-                                canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity * opacity);
+                                if (byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x, sub_pixel_y + 1, color, opacity);
+                                if (byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x, sub_pixel_y, color, opacity);
+                                if (next_column_byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x+1, sub_pixel_y + 1, color, opacity);
+                                if (next_column_byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x+1, sub_pixel_y, color, opacity);
+                            } else {
+                                pixel_opacity = (byte & (0x80 >> h)) ? 0.25f : 0;
+                                if (byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
+                                if (next_column_byte & (0x80 >> h)) pixel_opacity += 0.25f;
+                                if (next_column_byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
+                                if (pixel_opacity != 0.0f)
+                                    canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity * opacity);
+                            }
                         }
 
                         pixel_y--;
@@ -186,11 +188,14 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
             }
 
             current_x += FONT_WIDTH;
-            if (current_x + FONT_WIDTH > bounds.right) {
-                if (current_y + FONT_HEIGHT > bounds.bottom)
+            if (current_x > bounds.right) {
+                if (current_y > bounds.bottom)
                     break;
 
                 while (character && character != '\n') character = *++str;
+                if (!character)
+                    break;
+
                 current_x = (u16)x;
                 current_y += LINE_HEIGHT;
             }

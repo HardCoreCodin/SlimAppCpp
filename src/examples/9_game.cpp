@@ -1,12 +1,16 @@
+#define SLIMMER
+#define SLIM_DISABLE_ALL_CANVAS_DRAWING
 #define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
 
-#include "../slim/math/vec2.h"
-#include "../slim/app.h"
-#include "../slim/draw/rectangle.h"
+//#include "../slim/math/vec2.h"
+//#include "../slim/app.h"
+//#include "../slim/draw/rectangle.h"
 // Or using the single-header file:
-//#include "../slim.h"
+#include "../slim.h"
 
 struct GameApp : SlimApp {
+    Canvas canvas;
+
     struct Player {
         f32 size = 10;
         f32 speed = 80;
@@ -35,7 +39,12 @@ struct GameApp : SlimApp {
             (int)(player.pos.y - player.size),
             (int)(player.pos.y + player.size)
         };
-        window::canvas.fillRect(rect, Blue);
+        canvas.clear();
+        canvas.fillRect(rect, Blue);
+        canvas.drawToWindow();
+    }
+    void OnWindowResize(u16 width, u16 height) override {
+        canvas.dimensions.update(width, height);
     }
 };
 

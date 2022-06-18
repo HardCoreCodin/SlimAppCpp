@@ -59,7 +59,7 @@ typedef signed   long int  i32;
 typedef float  f32;
 typedef double f64;
 
-#ifdef SLIM_ENABLE_ALL_CANVAS_DRAWING
+#ifndef SLIM_DISABLE_ALL_CANVAS_DRAWING
     #ifndef SLIM_ENABLE_CANVAS_TEXT_DRAWING
         #define SLIM_ENABLE_CANVAS_TEXT_DRAWING
     #endif
@@ -87,6 +87,10 @@ typedef double f64;
     #ifndef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
         #define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
     #endif
+#endif
+
+#ifndef CANVAS_COUNT
+#define CANVAS_COUNT 2
 #endif
 
 #define FONT_WIDTH 9
@@ -840,6 +844,9 @@ namespace os {
 }
 
 namespace memory {
+    u8 *canvas_memory{nullptr};
+    u64 canvas_memory_capacity = CANVAS_SIZE * CANVAS_COUNT;
+
     typedef void* (*AllocateMemory)(u64 size);
 
     struct MonotonicAllocator {
@@ -864,4 +871,11 @@ namespace memory {
             return current_address;
         }
     };
+}
+
+namespace window {
+    u16 width{DEFAULT_WIDTH};
+    u16 height{DEFAULT_HEIGHT};
+    char* title{(char*)""};
+    u32 *content{nullptr};
 }

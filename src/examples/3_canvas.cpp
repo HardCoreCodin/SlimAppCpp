@@ -1,3 +1,5 @@
+#define SLIMMER
+#define SLIM_DISABLE_ALL_CANVAS_DRAWING
 #define SLIM_ENABLE_CANVAS_LINE_DRAWING
 #define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
 #define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
@@ -13,10 +15,20 @@
 // Or using the single-header file:
 //#include "../slim.h"
 
-struct ShapesApp : SlimApp {
-    void OnRender() override {
-        using namespace window;
+struct CanvasApp : SlimApp {
+    Canvas canvas;
 
+    void OnRender() override {
+        canvas.clear();
+        drawShapes();
+        canvas.drawToWindow();
+    }
+
+    void OnWindowResize(u16 width, u16 height) override {
+        canvas.dimensions.update(width, height);
+    }
+
+    void drawShapes() {
         // Draw and fill a rectangle with different colors:
         RectI rect{100, 300, 100, 300};
         canvas.fillRect(rect, DarkBlue);
@@ -49,6 +61,7 @@ struct ShapesApp : SlimApp {
         canvas.drawVLine(rect.y_range, rect.right,  Magenta);
     }
 };
+
 SlimApp* createApp() {
-    return new ShapesApp();
+    return new CanvasApp();
 }

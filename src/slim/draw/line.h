@@ -111,7 +111,7 @@ void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &can
     f32 first_y, last_y;
     i32 start_x, end_x;
     i32 start_y, end_y;
-    bool has_depth = z1 != 0.0f || z2 != 0.0f;
+    bool has_depth = canvas.depths != nullptr && z1 != 0.0f || z2 != 0.0f;
     if (fabsf(dx) > fabsf(dy)) { // Shallow:
         if (x2 < x1) { // Left to right:
             tmp = x2; x2 = x1; x1 = tmp;

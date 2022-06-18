@@ -1,6 +1,8 @@
 #pragma once
 
+#ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
 #include "../core/hud.h"
+#endif
 
 enum AntiAliasing {
     NoAA,
@@ -14,6 +16,21 @@ struct Canvas {
     f32 *depths{nullptr};
 
     AntiAliasing antialias{NoAA};
+
+    Canvas() {
+        if (memory::canvas_memory_capacity) {
+            pixels = (Pixel*)memory::canvas_memory;
+            memory::canvas_memory += CANVAS_PIXELS_SIZE;
+            memory::canvas_memory_capacity -= CANVAS_PIXELS_SIZE;
+
+            depths = (f32*)memory::canvas_memory;
+            memory::canvas_memory += CANVAS_DEPTHS_SIZE;
+            memory::canvas_memory_capacity -= CANVAS_DEPTHS_SIZE;
+        } else {
+            pixels = nullptr;
+            depths = nullptr;
+        }
+    }
 
     Canvas(Pixel *pixels, f32 *depths) noexcept : pixels{pixels}, depths{depths} {}
 
@@ -37,49 +54,61 @@ struct Canvas {
 
         Pixel pixel{red, green, blue, opacity};
 
-        for (i32 i = 0; i < pixels_count; i++) pixels[i] = pixel;
-        for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
+        if (pixels) for (i32 i = 0; i < pixels_count; i++) pixels[i] = pixel;
+        if (depths) for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
+    }
+
+    void drawToWindow() {
+        u32 *content_value = window::content;
+        Pixel *pixel = pixels;
+        for (u16 y = 0; y < window::height; y++)
+            for (u16 x = 0; x < window::width; x++, content_value++) {
+                *content_value = getPixelContent(pixel);
+
+                if (antialias == SSAA)
+                    pixel += 4;
+                else
+                    pixel++;
+            }
     }
 
     INLINE void setPixel(i32 x, i32 y, const Color &color, f32 opacity = 1.0f, f32 depth = 0, f32 z_top = 0, f32 z_bottom = 0, f32 z_right = 0) const {
         u32 offset = antialias == SSAA ? ((dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)) : (dimensions.stride * y + x);
         Pixel pixel{color, opacity};
         Pixel *out_pixel = pixels + offset;
-        f32 *out_depth = depths + (antialias == MSAA ? offset * 4 : offset);
+        f32 *out_depth = depths ? (depths + (antialias == MSAA ? offset * 4 : offset)) : nullptr;
         if (opacity == 1.0f && depth == 0.0f && z_top == 0.0f && z_bottom == 0.0f && z_right == 0.0f) {
             *out_pixel = pixel;
-            out_depth[0] = 0;
-            if (antialias == MSAA) out_depth[1] = out_depth[2] = out_depth[3] = 0;
+            if (depths) {
+                out_depth[0] = 0;
+                if (antialias == MSAA) out_depth[1] = out_depth[2] = out_depth[3] = 0;
+            }
 
             return;
         }
 
-        Pixel *bg, *fg;
+        Pixel *bg{out_pixel}, *fg{&pixel};
         if (antialias == MSAA) {
             Pixel accumulated_pixel{};
-            for (u8 i = 0; i < 4; i++, out_depth++) {
-                if (i) depth = i == 1 ? z_top : (i == 2 ? z_bottom : z_right);
-                _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
+            for (u8 i = 0; i < 4; i++) {
+                if (depths) {
+                    if (i) depth = i == 1 ? z_top : (i == 2 ? z_bottom : z_right);
+                    _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
+                    out_depth++;
+                }
                 accumulated_pixel += fg->opacity == 1 ? *fg : fg->alphaBlendOver(*bg);
             }
             *out_pixel = accumulated_pixel * 0.25f;
         } else {
-            _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
+            if (depths) _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
             *out_pixel = fg->opacity == 1 ? *fg : fg->alphaBlendOver(*bg);
         }
     }
 
-    void renderToContent(u32 *content) const {
-        u32 *content_value = content;
-        Pixel *pixel = pixels;
-        if (antialias == SSAA)
-            for (u16 y = 0; y < dimensions.height; y++)
-                for (u16 x = 0; x < dimensions.width; x++, content_value++, pixel += 4)
-                    *content_value = _isTransparentPixelQuad(pixel) ? 0 : _blendPixelQuad(pixel).asContent();
-        else
-            for (u16 y = 0; y < dimensions.height; y++)
-                for (u16 x = 0; x < dimensions.width; x++, content_value++, pixel++)
-                    *content_value = pixel->opacity ? pixel->asContent(true) : 0;
+    INLINE u32 getPixelContent(Pixel *pixel) const {
+        return antialias == SSAA ?
+            _isTransparentPixelQuad(pixel) ? 0 : _blendPixelQuad(pixel).asContent() :
+            pixel->opacity ? pixel->asContent(true) : 0;
     }
 
 #ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING

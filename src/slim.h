@@ -61,36 +61,40 @@ typedef signed   long int  i32;
 typedef float  f32;
 typedef double f64;
 
-#ifdef SLIM_ENABLE_ALL_CANVAS_DRAWING
+
+#ifndef SLIM_DISABLE_ALL_CANVAS_DRAWING
 #ifndef SLIM_ENABLE_CANVAS_TEXT_DRAWING
-        #define SLIM_ENABLE_CANVAS_TEXT_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-        #define SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_HUD_DRAWING
-        #define SLIM_ENABLE_CANVAS_HUD_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_LINE_DRAWING
-        #define SLIM_ENABLE_CANVAS_LINE_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-        #define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-        #define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-        #define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-    #endif
+#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
 #endif
 
+#ifndef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
+#define SLIM_ENABLE_CANVAS_NUMBER_DRAWING
+#endif
+
+#ifndef SLIM_ENABLE_CANVAS_HUD_DRAWING
+#define SLIM_ENABLE_CANVAS_HUD_DRAWING
+#endif
+
+#ifndef SLIM_ENABLE_CANVAS_LINE_DRAWING
+#define SLIM_ENABLE_CANVAS_LINE_DRAWING
+#endif
+
+#ifndef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
+#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
+#endif
+
+#ifndef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
+#define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
+#endif
+
+#ifndef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
+#define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
+#endif
+#endif
+
+#ifndef CANVAS_COUNT
+#define CANVAS_COUNT 2
+#endif
 
 #define FONT_WIDTH 9
 #define FONT_HEIGHT 12
@@ -740,6 +744,9 @@ namespace os {
 }
 
 namespace memory {
+    u8 *canvas_memory{nullptr};
+    u64 canvas_memory_capacity = CANVAS_SIZE * CANVAS_COUNT;
+
     typedef void* (*AllocateMemory)(u64 size);
 
     struct MonotonicAllocator {
@@ -764,6 +771,13 @@ namespace memory {
             return current_address;
         }
     };
+}
+
+namespace window {
+    u16 width{DEFAULT_WIDTH};
+    u16 height{DEFAULT_HEIGHT};
+    char* title{(char*)""};
+    u32 *content{nullptr};
 }
 
 struct String {
@@ -937,12 +951,6 @@ struct NumberString {
     }
 };
 
-
-enum AntiAliasing {
-    NoAA,
-    MSAA,
-    SSAA
-};
 
 struct HUDLine {
     String title{}, alternate_value{};
@@ -1985,12 +1993,33 @@ INLINE mat2 outer(const vec2 &lhs, const vec2 &rhs) {
 }
 
 
+enum AntiAliasing {
+    NoAA,
+    MSAA,
+    SSAA
+};
+
 struct Canvas {
     Dimensions dimensions;
     Pixel *pixels{nullptr};
     f32 *depths{nullptr};
 
     AntiAliasing antialias{NoAA};
+
+    Canvas() {
+        if (memory::canvas_memory_capacity) {
+            pixels = (Pixel*)memory::canvas_memory;
+            memory::canvas_memory += CANVAS_PIXELS_SIZE;
+            memory::canvas_memory_capacity -= CANVAS_PIXELS_SIZE;
+
+            depths = (f32*)memory::canvas_memory;
+            memory::canvas_memory += CANVAS_DEPTHS_SIZE;
+            memory::canvas_memory_capacity -= CANVAS_DEPTHS_SIZE;
+        } else {
+            pixels = nullptr;
+            depths = nullptr;
+        }
+    }
 
     Canvas(Pixel *pixels, f32 *depths) noexcept : pixels{pixels}, depths{depths} {}
 
@@ -2014,65 +2043,77 @@ struct Canvas {
 
         Pixel pixel{red, green, blue, opacity};
 
-        for (i32 i = 0; i < pixels_count; i++) pixels[i] = pixel;
-        for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
+        if (pixels) for (i32 i = 0; i < pixels_count; i++) pixels[i] = pixel;
+        if (depths) for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
+    }
+
+    void drawToWindow() {
+        u32 *content_value = window::content;
+        Pixel *pixel = pixels;
+        for (u16 y = 0; y < window::height; y++)
+            for (u16 x = 0; x < window::width; x++, content_value++) {
+                *content_value = getPixelContent(pixel);
+
+                if (antialias == SSAA)
+                    pixel += 4;
+                else
+                    pixel++;
+            }
     }
 
     INLINE void setPixel(i32 x, i32 y, const Color &color, f32 opacity = 1.0f, f32 depth = 0, f32 z_top = 0, f32 z_bottom = 0, f32 z_right = 0) const {
         u32 offset = antialias == SSAA ? ((dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)) : (dimensions.stride * y + x);
         Pixel pixel{color, opacity};
         Pixel *out_pixel = pixels + offset;
-        f32 *out_depth = depths + (antialias == MSAA ? offset * 4 : offset);
+        f32 *out_depth = depths ? (depths + (antialias == MSAA ? offset * 4 : offset)) : nullptr;
         if (opacity == 1.0f && depth == 0.0f && z_top == 0.0f && z_bottom == 0.0f && z_right == 0.0f) {
             *out_pixel = pixel;
-            out_depth[0] = 0;
-            if (antialias == MSAA) out_depth[1] = out_depth[2] = out_depth[3] = 0;
+            if (depths) {
+                out_depth[0] = 0;
+                if (antialias == MSAA) out_depth[1] = out_depth[2] = out_depth[3] = 0;
+            }
 
             return;
         }
 
-        Pixel *bg, *fg;
+        Pixel *bg{out_pixel}, *fg{&pixel};
         if (antialias == MSAA) {
             Pixel accumulated_pixel{};
-            for (u8 i = 0; i < 4; i++, out_depth++) {
-                if (i) depth = i == 1 ? z_top : (i == 2 ? z_bottom : z_right);
-                _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
+            for (u8 i = 0; i < 4; i++) {
+                if (depths) {
+                    if (i) depth = i == 1 ? z_top : (i == 2 ? z_bottom : z_right);
+                    _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
+                    out_depth++;
+                }
                 accumulated_pixel += fg->opacity == 1 ? *fg : fg->alphaBlendOver(*bg);
             }
             *out_pixel = accumulated_pixel * 0.25f;
         } else {
-            _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
+            if (depths) _sortPixelsByDepth(depth, &pixel, out_depth, out_pixel, &bg, &fg);
             *out_pixel = fg->opacity == 1 ? *fg : fg->alphaBlendOver(*bg);
         }
     }
 
-    void renderToContent(u32 *content) const {
-        u32 *content_value = content;
-        Pixel *pixel = pixels;
-        if (antialias == SSAA)
-            for (u16 y = 0; y < dimensions.height; y++)
-                for (u16 x = 0; x < dimensions.width; x++, content_value++, pixel += 4)
-                    *content_value = _isTransparentPixelQuad(pixel) ? 0 : _blendPixelQuad(pixel).asContent();
-        else
-            for (u16 y = 0; y < dimensions.height; y++)
-                for (u16 x = 0; x < dimensions.width; x++, content_value++, pixel++)
-                    *content_value = pixel->opacity ? pixel->asContent(true) : 0;
+    INLINE u32 getPixelContent(Pixel *pixel) const {
+        return antialias == SSAA ?
+               _isTransparentPixelQuad(pixel) ? 0 : _blendPixelQuad(pixel).asContent() :
+               pixel->opacity ? pixel->asContent(true) : 0;
     }
 
 #ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
     INLINE void drawText(char *str, i32 x, i32 y, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawText(char *str, vec2i position, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawText(char *str, vec2 position, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
     INLINE void drawNumber(i32 number, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawNumber(i32 number, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawNumber(i32 number, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
@@ -2284,7 +2325,7 @@ void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &can
     f32 first_y, last_y;
     i32 start_x, end_x;
     i32 start_y, end_y;
-    bool has_depth = z1 != 0.0f || z2 != 0.0f;
+    bool has_depth = canvas.depths != nullptr && z1 != 0.0f || z2 != 0.0f;
     if (fabsf(dx) > fabsf(dy)) { // Shallow:
         if (x2 < x1) { // Left to right:
             tmp = x2; x2 = x1; x1 = tmp;
@@ -3147,8 +3188,8 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
         bounds -= *viewport_bounds;
     }
 
-    if (x < bounds.left || x > (bounds.right - INTERNAL_FONT_WIDTH) ||
-        y < bounds.top || y > (bounds.bottom - INTERNAL_FONT_HEIGHT))
+    if (x + FONT_WIDTH < bounds.left || x - FONT_WIDTH > bounds.right ||
+        y + FONT_HEIGHT < bounds.top || y - FONT_HEIGHT > bounds.bottom)
         return;
 
     color.toGamma();
@@ -3163,7 +3204,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
     char character = *str;
     while (character) {
         if (character == '\n') {
-            if (current_y + FONT_HEIGHT > bounds.bottom)
+            if (current_y > bounds.bottom)
                 break;
 
             current_x = (u16)x;
@@ -3182,21 +3223,23 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
                 for (int w = 0; w < INTERNAL_FONT_WIDTH ; w += 2) {
                     for (int h = 0; h < 8; h += 2) {
                         /* skip background bits */
-                        if (canvas.antialias == SSAA) {
-                            sub_pixel_x = pixel_x << 1;
-                            sub_pixel_y = pixel_y << 1;
+                        if (bounds.contains(pixel_x, pixel_y)) {
+                            if (canvas.antialias == SSAA) {
+                                sub_pixel_x = pixel_x << 1;
+                                sub_pixel_y = pixel_y << 1;
 
-                            if (byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x, sub_pixel_y + 1, color, opacity);
-                            if (byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x, sub_pixel_y, color, opacity);
-                            if (next_column_byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x+1, sub_pixel_y + 1, color, opacity);
-                            if (next_column_byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x+1, sub_pixel_y, color, opacity);
-                        } else {
-                            pixel_opacity = (byte & (0x80 >> h)) ? 0.25f : 0;
-                            if (byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
-                            if (next_column_byte & (0x80 >> h)) pixel_opacity += 0.25f;
-                            if (next_column_byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
-                            if (pixel_opacity != 0.0f)
-                                canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity * opacity);
+                                if (byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x, sub_pixel_y + 1, color, opacity);
+                                if (byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x, sub_pixel_y, color, opacity);
+                                if (next_column_byte & (0x80 >> h)) canvas.setPixel(sub_pixel_x+1, sub_pixel_y + 1, color, opacity);
+                                if (next_column_byte & (0x80 >> (h+1))) canvas.setPixel(sub_pixel_x+1, sub_pixel_y, color, opacity);
+                            } else {
+                                pixel_opacity = (byte & (0x80 >> h)) ? 0.25f : 0;
+                                if (byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
+                                if (next_column_byte & (0x80 >> h)) pixel_opacity += 0.25f;
+                                if (next_column_byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
+                                if (pixel_opacity != 0.0f)
+                                    canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity * opacity);
+                            }
                         }
 
                         pixel_y--;
@@ -3211,11 +3254,14 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
             }
 
             current_x += FONT_WIDTH;
-            if (current_x + FONT_WIDTH > bounds.right) {
-                if (current_y + FONT_HEIGHT > bounds.bottom)
+            if (current_x > bounds.right) {
+                if (current_y > bounds.bottom)
                     break;
 
                 while (character && character != '\n') character = *++str;
+                if (!character)
+                    break;
+
                 current_x = (u16)x;
                 current_y += LINE_HEIGHT;
             }
@@ -3325,14 +3371,6 @@ INLINE void drawHUD(const HUD &hud, const Canvas &canvas, const RectI *viewport_
 
 
 
-namespace window {
-    u16 width{DEFAULT_WIDTH};
-    u16 height{DEFAULT_HEIGHT};
-    char* title{(char*)""};
-    u32 *content{nullptr};
-    Canvas canvas{nullptr, nullptr};
-}
-
 struct SlimApp {
     time::Timer update_timer, render_timer;
     bool is_running{true};
@@ -3353,19 +3391,16 @@ struct SlimApp {
         OnUpdate(update_timer.delta_time);
         update_timer.endFrame();
 
-        window::canvas.clear();
         render_timer.beginFrame();
         OnRender();
         render_timer.endFrame();
-        window::canvas.renderToContent(window::content);
+
         mouse::resetChanges();
     };
 
     void resize(u16 width, u16 height) {
         window::width = width;
         window::height = height;
-        window::canvas.dimensions.update(width, height);
-
         OnWindowResize(width, height);
         OnWindowRedraw();
     }
@@ -3666,13 +3701,12 @@ int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR     lpCmdLine,
                      int       nCmdShow) {
-    void* window_content_and_canvas_memory = GlobalAlloc(GPTR, WINDOW_CONTENT_SIZE + CANVAS_SIZE);
+    void* window_content_and_canvas_memory = GlobalAlloc(GPTR, WINDOW_CONTENT_SIZE + (CANVAS_SIZE * CANVAS_COUNT));
     if (!window_content_and_canvas_memory)
         return -1;
 
     window::content = (u32*)window_content_and_canvas_memory;
-    window::canvas.pixels = (Pixel*)((u8*)window_content_and_canvas_memory + WINDOW_CONTENT_SIZE);
-    window::canvas.depths = (f32*)((u8*)window_content_and_canvas_memory + WINDOW_CONTENT_SIZE + CANVAS_PIXELS_SIZE);
+    memory::canvas_memory = (u8*)window_content_and_canvas_memory + WINDOW_CONTENT_SIZE;
 
     controls::key_map::ctrl = VK_CONTROL;
     controls::key_map::alt = VK_MENU;

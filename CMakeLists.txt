@@ -9,8 +9,8 @@ add_executable(1_defaults WIN32 src/examples/1_defaults.cpp)
 project(2_time)
 add_executable(2_time WIN32 src/examples/2_time.cpp)
 
-project(3_shapes)
-add_executable(3_shapes WIN32 src/examples/3_shapes.cpp)
+project(3_canvas)
+add_executable(3_canvas WIN32 src/examples/3_canvas.cpp)
 
 project(4_text)
 add_executable(4_text WIN32 src/examples/4_text.cpp)

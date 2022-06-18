@@ -1,3 +1,5 @@
+#define SLIMMER
+#define SLIM_DISABLE_ALL_CANVAS_DRAWING
 #define SLIM_ENABLE_CANVAS_TEXT_DRAWING
 #define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
 
@@ -8,18 +10,18 @@
 //#include "../slim.h"
 
 struct KeyboardApp : public SlimApp {
+    Canvas canvas;
     Move move{};
 
     void OnKeyChanged(u8 key, bool is_pressed) override {
-        if (key == 'R') move.up       = is_pressed;
-        if (key == 'F') move.down     = is_pressed;
-        if (key == 'W') move.forward  = is_pressed;
-        if (key == 'S') move.backward = is_pressed;
+        if (key == 'W') move.up       = is_pressed;
         if (key == 'A') move.left     = is_pressed;
+        if (key == 'S') move.down     = is_pressed;
         if (key == 'D') move.right    = is_pressed;
     }
     void OnRender() override {
-        using namespace window;
+        canvas.clear();
+
         using namespace controls;
 
         i32 right  = canvas.dimensions.width / 2 + 114;
@@ -39,48 +41,31 @@ struct KeyboardApp : public SlimApp {
         rect.bottom = bottom - 46;
         rect.top = rect.bottom - 18;
         canvas.fillRect(rect, move.left ? BrightGrey : DarkGrey);
-        canvas.drawText((char*)"A", rect.left + 6, rect.top + 4, move.left ? DarkGrey : BrightGrey);
+        canvas.drawText((char*)"A", rect.left + 6, rect.top + 4,
+                        move.left ? DarkGrey : BrightGrey);
 
         // Draw the 'S' key:
         rect.left += 22;
         rect.right += 22;
-        canvas.fillRect(rect, move.backward ? BrightGrey : DarkGrey);
-        canvas.drawText((char*)"S", rect.left + 6, rect.top + 4, move.backward ? DarkGrey : BrightGrey);
+        canvas.fillRect(rect, move.down ? BrightGrey : DarkGrey);
+        canvas.drawText((char*)"S", rect.left + 6, rect.top + 4,
+                        move.backward ? DarkGrey : BrightGrey);
 
         // Draw the 'D' key:
         rect.left += 22;
         rect.right += 22;
         canvas.fillRect(rect, move.right ? BrightGrey : DarkGrey);
-        canvas.drawText((char*)"D", rect.left + 6, rect.top + 4, move.right ? DarkGrey : BrightGrey);
-
-        // Draw the 'D' key:
-        rect.left += 22;
-        rect.right += 22;
-        canvas.fillRect(rect, move.down ? BrightGrey : DarkGrey);
-        canvas.drawText((char*)"F", rect.left + 6, rect.top + 4, move.down ? DarkGrey : BrightGrey);
-
-        // Draw the 'Q' key:
-        rect.left -= 28 * 3;
-        rect.right -= 28 * 3;
-        rect.top -= 22;
-        rect.bottom -= 22;
+        canvas.drawText((char*)"D", rect.left + 6, rect.top + 4,
+                        move.right ? DarkGrey : BrightGrey);
 
         // Draw the 'W' key:
-        rect.left += 22;
-        rect.right += 22;
-        canvas.fillRect(rect, move.forward ? BrightGrey : DarkGrey);
-        canvas.drawText((char*)"W", rect.left + 6, rect.top + 4, move.forward ? DarkGrey : BrightGrey);
-
-        // Draw the 'E' key:
-        rect.left += 22;
-        rect.right += 22;
-
-        // Draw the 'R' key:
-        rect.left += 22;
-        rect.right += 22;
+        rect.left -= 28;
+        rect.right -= 28;
+        rect.top -= 22;
+        rect.bottom -= 22;
         canvas.fillRect(rect, move.up ? BrightGrey : DarkGrey);
-        canvas.drawText((char*)"R", rect.left + 6, rect.top + 4, move.up ? DarkGrey : BrightGrey);
-
+        canvas.drawText((char*)"W", rect.left + 6, rect.top + 4,
+                        move.forward ? DarkGrey : BrightGrey);
 
         // Draw the left Ctrl key:
         rect.right = right - 200;
@@ -126,6 +111,12 @@ struct KeyboardApp : public SlimApp {
         rect.bottom = bottom - 6;
         rect.top = rect.bottom - 16;
         canvas.fillRect(rect, is_pressed::space ? BrightGrey : Grey);
+
+        canvas.drawToWindow();
+    }
+
+    void OnWindowResize(u16 width, u16 height) override {
+        canvas.dimensions.update(width, height);
     }
 };
 

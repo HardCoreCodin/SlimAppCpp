@@ -1,4 +1,7 @@
+#define SLIMMER
+
 #include "../slim/app.h"
+#include "../slim/core/string.h"
 // Or using the single-header file:
 //#include "../slim.h"
 

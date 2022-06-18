@@ -1,3 +1,5 @@
+#define SLIMMER
+
 #include "../slim/app.h"
 // Or using the single-header file:
 //#include "../slim.h"

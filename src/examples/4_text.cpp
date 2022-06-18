@@ -1,3 +1,5 @@
+#define SLIMMER
+#define SLIM_DISABLE_ALL_CANVAS_DRAWING
 #define SLIM_ENABLE_CANVAS_TEXT_DRAWING
 #define SLIM_ENABLE_CANVAS_NUMBER_DRAWING
 
@@ -8,8 +10,10 @@
 //#include "../slim.h"
 
 struct TextApp : SlimApp {
+    Canvas canvas;
+
     void OnRender() override {
-        using namespace window;
+        canvas.clear();
 
         // Draw a multi colored line of text:
         vec2i pos{20, 50};
@@ -18,6 +22,12 @@ struct TextApp : SlimApp {
 
         pos.x += ((i32)text.length - 4) * FONT_WIDTH;
         canvas.drawNumber(42, pos, Red);
+
+        canvas.drawToWindow();
+    }
+
+    void OnWindowResize(u16 width, u16 height) override {
+        canvas.dimensions.update(width, height);
     }
 };
 
