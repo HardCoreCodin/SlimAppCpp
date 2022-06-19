@@ -29,3 +29,6 @@ add_executable(8_keyboard WIN32 src/examples/8_keyboard.cpp)
 
 project(9_game)
 add_executable(9_game WIN32 src/examples/9_game.cpp)
+
+project(viz)
+add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)

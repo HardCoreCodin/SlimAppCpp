@@ -282,6 +282,9 @@ INLINE void Canvas::drawLine(f32 x1, f32 y1, f32 x2, f32 y2, Color color, f32 op
 INLINE void Canvas::drawLine(vec2 from, vec2 to, Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
     _drawLine(from.x, from.y, 0, to.x, to.y, 0, *this, color, opacity, line_width, viewport_bounds);
 }
+INLINE void Canvas::drawLine(vec2i from, vec2i to, Color color, f32 opacity, u8 line_width, const RectI *viewport_bounds) {
+    _drawLine((f32)from.x, (f32)from.y, 0, (f32)to.x, (f32)to.y, 0, *this, color, opacity, line_width, viewport_bounds);
+}
 #endif
 #endif
 

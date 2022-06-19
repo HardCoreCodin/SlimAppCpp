@@ -373,6 +373,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
             DispatchMessageA(&message);
         }
         CURRENT_APP->OnWindowRedraw();
+        mouse::resetChanges();
         InvalidateRgn(window_handle, nullptr, false);
     }
 

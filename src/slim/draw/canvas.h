@@ -141,6 +141,7 @@ struct Canvas {
 
     #ifdef SLIM_VEC2
     INLINE void drawLine(vec2 from, vec2 to, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
+    INLINE void drawLine(vec2i from, vec2i to, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
     #endif
 #endif
 
@@ -171,6 +172,8 @@ struct Canvas {
     #ifdef SLIM_VEC2
     INLINE void drawCircle(vec2i center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void fillCircle(vec2i center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void drawCircle(vec2 center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
+    INLINE void fillCircle(vec2 center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     #endif
 #endif
 

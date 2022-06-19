@@ -26,8 +26,6 @@ struct SlimApp {
         render_timer.beginFrame();
         OnRender();
         render_timer.endFrame();
-
-        mouse::resetChanges();
     };
 
     void resize(u16 width, u16 height) {

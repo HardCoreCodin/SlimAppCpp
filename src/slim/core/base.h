@@ -152,6 +152,11 @@ INLINE i32 clampedValue(i32 value) {
     return mn > 0 ? mn : 0;
 }
 
+f32 smoothstep(f32 from, f32 to, f32 t) {
+    t = (t - from) / (to - from);
+    return t * t * (3 - 2 * t);
+}
+
 template <typename T>
 INLINE void swap(T *a, T *b) {
     T t = *a;
@@ -272,109 +277,6 @@ INLINE f32 approach(f32 src, f32 trg, f32 diff) {
 
     return trg;
 }
-
-enum class CurveType {
-    None = 0,
-
-    Helix,
-    Coil,
-
-    Count
-};
-struct Curve {
-    CurveType type{CurveType::None};
-    f32 revolution_count{1}, thickness{0.1f};
-};
-
-enum GeometryType {
-    GeometryType_None = 0,
-
-    GeometryType_Mesh,
-    GeometryType_Grid,
-    GeometryType_Box,
-    GeometryType_Curve,
-
-    GeometryType_Count
-};
-
-enum BoxSide {
-    NoSide = 0,
-    Top    = 1,
-    Bottom = 2,
-    Left   = 4,
-    Right  = 8,
-    Front  = 16,
-    Back   = 32
-};
-
-
-template <class T>
-struct Orientation {
-    T rotation{};
-
-    Orientation() : rotation{T::Identity} {}
-    explicit Orientation(f32 x_radians, f32 y_radians = 0, f32 z_radians = 0) {
-        setRotation(x_radians, y_radians, z_radians);
-    }
-
-    INLINE void rotate(f32 x_radians, f32 y_radians, f32 z_radians) {
-        setRotation(x + x_radians, y + y_radians, x + z_radians);
-    }
-
-    INLINE void rotate(f32 x_radians, f32 y_radians) {
-        setRotation(x + x_radians, y + y_radians);
-    }
-
-    INLINE void setRotation(f32 x_radians, f32 y_radians, f32 z_radians) {
-        x = x_radians;
-        y = y_radians;
-        z = z_radians;
-        _update();
-    }
-
-    INLINE void setRotation(f32 x_radians, f32 y_radians) {
-        x = x_radians;
-        y = y_radians;
-        _update();
-    }
-
-    INLINE void rotateAroundX(f32 radians) {
-        setRotationAroundX(x + radians);
-    }
-
-    INLINE void rotateAroundY(f32 radians) {
-        setRotationAroundY(y + radians);
-    }
-
-    INLINE void rotateAroundZ(f32 radians) {
-        setRotationAroundZ(z + radians);
-    }
-
-    INLINE void setRotationAroundX(f32 radians) {
-        x = radians;
-        _update();
-    }
-
-    INLINE void setRotationAroundY(f32 radians) {
-        y = radians;
-        _update();
-    }
-
-    INLINE void setRotationAroundZ(f32 radians) {
-        z = radians;
-        _update();
-    }
-
-protected:
-    f32 x, y, z;
-
-    void _update() {
-        rotation = T::Identity;
-        if (z != 0.0f) rotation = T::RotationAroundZ(z);
-        if (x != 0.0f) rotation *= T::RotationAroundX(x);
-        if (y != 0.0f) rotation *= T::RotationAroundY(y);
-    }
-};
 
 enum ColorID {
     Black,
@@ -529,11 +431,31 @@ struct Color {
         return *this;
     }
 
+    INLINE Color operator - (const Color &rhs) const {
+        return {
+            r - rhs.r,
+            g - rhs.g,
+            b - rhs.b
+        };
+    }
+
     INLINE Color operator * (f32 factor) const {
         return {
             r * factor,
             g * factor,
             b * factor
+        };
+    }
+
+    INLINE Color lerpTo(const Color &to, f32 by) const {
+        return (to - *this).scaleAdd(by, *this);
+    }
+
+    INLINE Color scaleAdd(f32 factor, const Color &to_be_added) const {
+        return {
+            fast_mul_add(r, factor, to_be_added.r),
+            fast_mul_add(g, factor, to_be_added.g),
+            fast_mul_add(b, factor, to_be_added.b)
         };
     }
 
@@ -587,7 +509,6 @@ struct Pixel {
         u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(premultiply ? color.b * opacity : color.b)));
         return R << 16 | G << 8 | B;
     }
-
 };
 
 #define PIXEL_SIZE (sizeof(Pixel))
