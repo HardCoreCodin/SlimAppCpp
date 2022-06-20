@@ -81,7 +81,7 @@ struct HUD {
         if (settings.line_count) {
             lines = (HUDLine*)allocate_memory(settings.line_count * sizeof(HUDLine));
             for (u32 i = 0; i < settings.line_count; i++)
-                new(lines + i) HUDLine{settings.default_color};
+                lines[i] = HUDLine{settings.default_color};
         }
     }
 };

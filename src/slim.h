@@ -674,11 +674,10 @@ namespace mouse {
     struct Button {
         i32 down_pos_x, down_pos_y, up_pos_x, up_pos_y, double_click_pos_x, double_click_pos_y;
 
-        bool is_pressed{false}, is_handled{false}, double_clicked{false};
+        bool is_pressed{false}, double_clicked{false};
 
         void down(i32 x, i32 y) {
             is_pressed = true;
-            is_handled = false;
 
             down_pos_x = x;
             down_pos_y = y;
@@ -686,7 +685,6 @@ namespace mouse {
 
         void up(i32 x, i32 y) {
             is_pressed = false;
-            is_handled = false;
 
             up_pos_x = x;
             up_pos_y = y;
@@ -700,37 +698,25 @@ namespace mouse {
     };
 
     Button middle_button, right_button, left_button;
+
     i32 pos_x, pos_y, pos_raw_diff_x, pos_raw_diff_y, movement_x, movement_y;
     f32 wheel_scroll_amount{0};
 
     bool moved{false};
     bool is_captured{false};
-    bool move_handled{false};
     bool double_clicked{false};
-    bool double_clicked_handled{false};
     bool wheel_scrolled{false};
-    bool wheel_scroll_handled{false};
-    bool raw_movement_handled{false};
 
     void resetChanges() {
-        if (move_handled) {
-            move_handled = false;
-            moved = false;
-        }
-        if (double_clicked_handled) {
-            double_clicked_handled = false;
-            double_clicked = false;
-        }
-        if (raw_movement_handled) {
-            raw_movement_handled = false;
-            pos_raw_diff_x = 0;
-            pos_raw_diff_y = 0;
-        }
-        if (wheel_scroll_handled) {
-            wheel_scroll_handled = false;
-            wheel_scrolled = false;
-            wheel_scroll_amount = 0;
-        }
+        moved = false;
+        double_clicked = false;
+        wheel_scrolled = false;
+        wheel_scroll_amount = 0;
+        pos_raw_diff_x = 0;
+        pos_raw_diff_y = 0;
+        right_button.double_clicked = false;
+        left_button.double_clicked = false;
+        middle_button.double_clicked = false;
     }
 
     void scroll(f32 amount) {
@@ -1056,7 +1042,7 @@ struct HUD {
         if (settings.line_count) {
             lines = (HUDLine*)allocate_memory(settings.line_count * sizeof(HUDLine));
             for (u32 i = 0; i < settings.line_count; i++)
-                new(lines + i) HUDLine{settings.default_color};
+                lines[i] = HUDLine{settings.default_color};
         }
     }
 };
@@ -1813,12 +1799,7 @@ INLINE vec2 lerp(const vec2 &from, const vec2 &to, f32 by) {
 }
 
 struct mat2 {
-    union {
-        f32 components[4];
-        vec2 axis[2];
-        struct { vec2 X, Y; };
-        struct { vec2 right, up; };
-    };
+    vec2 X, Y;
 
     static mat2 Identity;
 

@@ -69,8 +69,6 @@ struct MouseApp : SlimApp {
                 mouse_wheel_delta_y -= 1;
                 mouse_wheel_delta_y *= 38;
                 mouse_wheel_delta_y /= -2;
-
-                mouse::wheel_scroll_handled = true;
             }
             rect.top += (i32)mouse_wheel_delta_y;
             rect.bottom += (i32)mouse_wheel_delta_y;
