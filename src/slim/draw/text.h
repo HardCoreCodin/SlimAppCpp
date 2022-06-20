@@ -126,7 +126,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
         y + FONT_HEIGHT < bounds.top || y - FONT_HEIGHT > bounds.bottom)
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
 
     f32 pixel_opacity;
     u16 current_x = (u16)x;

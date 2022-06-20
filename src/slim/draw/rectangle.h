@@ -26,7 +26,7 @@ void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     if (!rect)
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
 
     if (canvas.antialias == SSAA) {
         rect *= 2;
@@ -95,7 +95,7 @@ void _fillRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     if (!rect)
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
 
     if (canvas.antialias == SSAA) {
         rect *= 2;

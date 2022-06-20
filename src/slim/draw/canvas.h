@@ -58,6 +58,52 @@ struct Canvas {
         if (depths) for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
     }
 
+    void drawFrom(Canvas &source_canvas, bool blend = false, bool inclue_depths = false, const RectI *viewport_bounds = nullptr) {
+        RectI bounds{
+            0, dimensions.width < source_canvas.dimensions.width ? dimensions.width : source_canvas.dimensions.width,
+            0, dimensions.height < source_canvas.dimensions.height ? dimensions.height : source_canvas.dimensions.height
+        };
+        if (viewport_bounds)
+            bounds -= *viewport_bounds;
+
+        if ((antialias == SSAA) && (source_canvas.antialias == SSAA))
+            bounds *= 2;
+
+        f32 depth;
+        for (i32 y = bounds.top; y < bounds.bottom; y++) {
+            for (i32 x = bounds.left; x < bounds.right; x++) {
+                i32 src_offset = source_canvas.antialias == SSAA ? (
+                    (source_canvas.dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
+                ) : (
+                    source_canvas.dimensions.stride * y + x
+                );
+
+                Pixel &pixel{source_canvas.pixels[src_offset]};
+                if ((pixel.opacity == 0.0f) || (
+                        (pixel.color.r == 0.0f) &&
+                        (pixel.color.g == 0.0f) &&
+                        (pixel.color.b == 0.0f)))
+                    continue;
+
+                if (inclue_depths)
+                    depth = source_canvas.depths[src_offset];
+
+                if (blend) {
+                    setPixel(x, y, pixel.color, pixel.opacity, inclue_depths ? depth : 0.0f);
+                } else {
+                    i32 trg_offset = antialias == SSAA ? (
+                        (dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
+                    ) : (
+                        dimensions.stride * y + x
+                    );
+                    pixels[trg_offset] = source_canvas.pixels[src_offset];
+                    if (inclue_depths && depth < depths[trg_offset])
+                        depths[trg_offset] = depth;
+                }
+            }
+        }
+    }
+
     void drawToWindow() {
         u32 *content_value = window::content;
         Pixel *pixel = pixels;

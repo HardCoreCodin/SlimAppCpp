@@ -418,10 +418,11 @@ struct Color {
         }
     }
 
-    INLINE void toGamma() {
+    INLINE Color& gammaCorrect() {
         r *= r;
         g *= g;
         b *= b;
+        return *this;
     }
 
     INLINE Color& operator += (const Color &rhs) {

@@ -421,10 +421,11 @@ struct Color {
         }
     }
 
-    INLINE void toGamma() {
+    INLINE Color& gammaCorrect() {
         r *= r;
         g *= g;
         b *= b;
+        return *this;
     }
 
     INLINE Color& operator += (const Color &rhs) {
@@ -2053,6 +2054,52 @@ struct Canvas {
         if (depths) for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
     }
 
+    void drawFrom(Canvas &source_canvas, bool blend = false, bool inclue_depths = false, const RectI *viewport_bounds = nullptr) {
+        RectI bounds{
+                0, dimensions.width < source_canvas.dimensions.width ? dimensions.width : source_canvas.dimensions.width,
+                0, dimensions.height < source_canvas.dimensions.height ? dimensions.height : source_canvas.dimensions.height
+        };
+        if (viewport_bounds)
+            bounds -= *viewport_bounds;
+
+        if ((antialias == SSAA) && (source_canvas.antialias == SSAA))
+            bounds *= 2;
+
+        f32 depth;
+        for (i32 y = bounds.top; y < bounds.bottom; y++) {
+            for (i32 x = bounds.left; x < bounds.right; x++) {
+                i32 src_offset = source_canvas.antialias == SSAA ? (
+                        (source_canvas.dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
+                ) : (
+                                         source_canvas.dimensions.stride * y + x
+                                 );
+
+                Pixel &pixel{source_canvas.pixels[src_offset]};
+                if ((pixel.opacity == 0.0f) || (
+                        (pixel.color.r == 0.0f) &&
+                        (pixel.color.g == 0.0f) &&
+                        (pixel.color.b == 0.0f)))
+                    continue;
+
+                if (inclue_depths)
+                    depth = source_canvas.depths[src_offset];
+
+                if (blend) {
+                    setPixel(x, y, pixel.color, pixel.opacity, inclue_depths ? depth : 0.0f);
+                } else {
+                    i32 trg_offset = antialias == SSAA ? (
+                            (dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
+                    ) : (
+                                             dimensions.stride * y + x
+                                     );
+                    pixels[trg_offset] = source_canvas.pixels[src_offset];
+                    if (inclue_depths && depth < depths[trg_offset])
+                        depths[trg_offset] = depth;
+                }
+            }
+        }
+    }
+
     void drawToWindow() {
         u32 *content_value = window::content;
         Pixel *pixel = pixels;
@@ -2108,18 +2155,18 @@ struct Canvas {
 
 #ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
     INLINE void drawText(char *str, i32 x, i32 y, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawText(char *str, vec2i position, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawText(char *str, vec2 position, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
     INLINE void drawNumber(i32 number, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawNumber(i32 number, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawNumber(i32 number, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
@@ -2134,10 +2181,10 @@ struct Canvas {
     INLINE void drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
     INLINE void drawLine(f32 x1, f32 y1, f32 x2, f32 y2, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
 
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawLine(vec2 from, vec2 to, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
     INLINE void drawLine(vec2i from, vec2i to, Color color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
@@ -2153,33 +2200,33 @@ struct Canvas {
     INLINE void fillTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void fillTriangle(i32 x1, i32 y1, i32 x2, i32 y2, i32 x3, i32 y3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
 
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawTriangle(vec2 p1, vec2 p2, vec2 p3, Color color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr);
     INLINE void fillTriangle(vec2 p1, vec2 p2, vec2 p3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawTriangle(vec2i p1, vec2i p2, vec2i p3, Color color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr);
     INLINE void fillTriangle(vec2i p1, vec2i p2, vec2i p3, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
     INLINE void fillCircle(i32 center_x, i32 center_y, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawCircle(i32 center_x, i32 center_y, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawCircle(vec2i center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void fillCircle(vec2i center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void drawCircle(vec2 center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
     INLINE void fillCircle(vec2 center, i32 radius, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr);
-    #endif
+#endif
 #endif
 
 private:
     static INLINE bool _isTransparentPixelQuad(Pixel *pixel_quad) {
         return (
-                (pixel_quad[0].opacity) == 0.0f &&
+                (pixel_quad[0].opacity == 0.0f) &&
                 (pixel_quad[1].opacity == 0.0f) &&
                 (pixel_quad[2].opacity == 0.0f) &&
                 (pixel_quad[3].opacity == 0.0f)
-                );
+        );
     }
 
     static INLINE Pixel _blendPixelQuad(Pixel *pixel_quad) {
@@ -2244,7 +2291,7 @@ void _drawHLine(RangeI x_range, i32 y, const Canvas &canvas, Color color, f32 op
     if (!x_range || !y_range[y])
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
     if (canvas.antialias == SSAA) {
         y *= 2;
         x_range *= 2;
@@ -2273,7 +2320,7 @@ void _drawVLine(RangeI y_range, i32 x, const Canvas &canvas, Color color, f32 op
     if (!y_range || !x_range[x])
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
     if (canvas.antialias == SSAA) {
         x *= 2;
         y_range *= 2;
@@ -2316,7 +2363,7 @@ void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &can
     if (x_range.last == (i32)canvas.dimensions.width) x_range.last--;
     if (y_range.last == (i32)canvas.dimensions.height) y_range.last--;
 
-    color.toGamma();
+    color.gammaCorrect();
     i32 x, y;
     if (canvas.antialias == SSAA) {
         x1 += x1;
@@ -2573,7 +2620,7 @@ void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     if (!rect)
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
 
     if (canvas.antialias == SSAA) {
         rect *= 2;
@@ -2642,7 +2689,7 @@ void _fillRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     if (!rect)
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
 
     if (canvas.antialias == SSAA) {
         rect *= 2;
@@ -3227,7 +3274,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
         y + FONT_HEIGHT < bounds.top || y - FONT_HEIGHT > bounds.bottom)
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
 
     f32 pixel_opacity;
     u16 current_x = (u16)x;

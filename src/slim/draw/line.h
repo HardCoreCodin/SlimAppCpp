@@ -16,7 +16,7 @@ void _drawHLine(RangeI x_range, i32 y, const Canvas &canvas, Color color, f32 op
     if (!x_range || !y_range[y])
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
     if (canvas.antialias == SSAA) {
         y *= 2;
         x_range *= 2;
@@ -45,7 +45,7 @@ void _drawVLine(RangeI y_range, i32 x, const Canvas &canvas, Color color, f32 op
     if (!y_range || !x_range[x])
         return;
 
-    color.toGamma();
+    color.gammaCorrect();
     if (canvas.antialias == SSAA) {
         x *= 2;
         y_range *= 2;
@@ -88,7 +88,7 @@ void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &can
     if (x_range.last == (i32)canvas.dimensions.width) x_range.last--;
     if (y_range.last == (i32)canvas.dimensions.height) y_range.last--;
 
-    color.toGamma();
+    color.gammaCorrect();
     i32 x, y;
     if (canvas.antialias == SSAA) {
         x1 += x1;
