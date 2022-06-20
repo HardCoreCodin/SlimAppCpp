@@ -10,42 +10,33 @@
 //#include "../slim.h"
 
 struct PaintApp : SlimApp {
-    Canvas canvas, painting;
-
-    PaintApp() {
-        painting.dimensions.update(MAX_WIDTH, MAX_HEIGHT);
-//        painting.antialias = canvas.antialias = SSAA;
-    }
+    Canvas canvas{SSAA}, painting{MAX_WIDTH, MAX_HEIGHT, SSAA};
 
     void OnRender() override {
         canvas.clear();
 
-        int width = canvas.dimensions.width;
-        int height = canvas.dimensions.height;
-//        if (canvas.antialias == SSAA) {
-//            width *= 2;
-//            height *= 2;
-//        }
+        int width = canvas.dimensions.width * 2;
+        int height = canvas.dimensions.height * 2;
         float one_over_width = 1.0f / (f32)width;
         float one_over_height = 1.0f / (f32)height;
 
+        Color color;
+        color.green = 0;
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++) {
-                Color color;
-                color.green = 0;
                 color.red = (float)x * one_over_width;
                 color.blue = (float)y * one_over_height;
                 color.gammaCorrect();
                 canvas.setPixel(x, y, color);
             }
 
-        Color color = Green;
-        i32 radius = 15;
+        color = Green;
+        i32 radius = 5;
         vec2i center{mouse::pos_x, mouse::pos_y};
         if (mouse::left_button.is_pressed)
-            painting.fillCircle(center, radius, color, 0.2);
+            painting.fillCircle(center, radius, color, 0.2f);
 
-        canvas.drawFrom(painting, true);
+        canvas.drawFrom(painting);
         canvas.drawCircle(center, radius, color);
         canvas.drawToWindow();
     }

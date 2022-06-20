@@ -2013,7 +2013,7 @@ struct Canvas {
 
     AntiAliasing antialias{NoAA};
 
-    Canvas() {
+    Canvas(AntiAliasing antialiasing = NoAA) : antialias{antialiasing} {
         if (memory::canvas_memory_capacity) {
             pixels = (Pixel*)memory::canvas_memory;
             memory::canvas_memory += CANVAS_PIXELS_SIZE;
@@ -2026,6 +2026,10 @@ struct Canvas {
             pixels = nullptr;
             depths = nullptr;
         }
+    }
+
+    Canvas(i32 width = window::width, i32 height = window::height, AntiAliasing antialiasing = NoAA) : Canvas{antialiasing} {
+        dimensions.update(width, height);
     }
 
     Canvas(Pixel *pixels, f32 *depths) noexcept : pixels{pixels}, depths{depths} {}
@@ -2054,7 +2058,7 @@ struct Canvas {
         if (depths) for (i32 i = 0; i < depths_count; i++) depths[i] = depth;
     }
 
-    void drawFrom(Canvas &source_canvas, bool blend = false, bool inclue_depths = false, const RectI *viewport_bounds = nullptr) {
+    void drawFrom(Canvas &source_canvas, bool blend = true, bool include_depths = false, const RectI *viewport_bounds = nullptr) {
         RectI bounds{
                 0, dimensions.width < source_canvas.dimensions.width ? dimensions.width : source_canvas.dimensions.width,
                 0, dimensions.height < source_canvas.dimensions.height ? dimensions.height : source_canvas.dimensions.height
@@ -2081,11 +2085,11 @@ struct Canvas {
                         (pixel.color.b == 0.0f)))
                     continue;
 
-                if (inclue_depths)
+                if (include_depths)
                     depth = source_canvas.depths[src_offset];
 
                 if (blend) {
-                    setPixel(x, y, pixel.color, pixel.opacity, inclue_depths ? depth : 0.0f);
+                    setPixel(x, y, pixel.color, pixel.opacity, include_depths ? depth : 0.0f);
                 } else {
                     i32 trg_offset = antialias == SSAA ? (
                             (dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
@@ -2093,7 +2097,7 @@ struct Canvas {
                                              dimensions.stride * y + x
                                      );
                     pixels[trg_offset] = source_canvas.pixels[src_offset];
-                    if (inclue_depths && depth < depths[trg_offset])
+                    if (include_depths && depth < depths[trg_offset])
                         depths[trg_offset] = depth;
                 }
             }
