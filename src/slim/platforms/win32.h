@@ -52,14 +52,14 @@ inline UINT getRawInput(LPVOID data) {
     return GetRawInputData(raw_input_handle, RID_INPUT, data, raw_input_size_ptr, raw_input_header_size);
 }
 inline bool hasRawInput() {
-    return getRawInput(0) == 0 && raw_input_size != 0;
+    return (getRawInput(0) == 0) && (raw_input_size != 0);
 }
 inline bool hasRawMouseInput(LPARAM lParam) {
     raw_input_handle = (HRAWINPUT)(lParam);
     return (
-            hasRawInput() &&
-            getRawInput((LPVOID)&raw_inputs) == raw_input_size &&
-            raw_inputs.header.dwType == RIM_TYPEMOUSE
+            (hasRawInput()) &&
+            (getRawInput((LPVOID)&raw_inputs) == raw_input_size) &&
+            (raw_inputs.header.dwType == RIM_TYPEMOUSE)
     );
 }
 

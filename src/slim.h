@@ -175,8 +175,8 @@ struct RangeOf {
     RangeOf(T first, T last) : first{first}, last{last} {}
     RangeOf(const RangeOf<T> &other) : RangeOf{other.first, other.last} {}
 
-    INLINE bool contains(i32 v) const { return first <= v && v <= last; }
-    INLINE bool bounds(i32 v) const { return first < v && v < last; }
+    INLINE bool contains(i32 v) const { return (first <= v) && (v <= last); }
+    INLINE bool bounds(i32 v) const { return (first < v) && (v < last); }
     INLINE bool operator!() const { return last < first; }
     INLINE bool operator[](T v) const { return contains(v); }
     INLINE bool operator()(T v) const { return bounds(v); }
@@ -840,7 +840,7 @@ struct String {
     static u32 getDirectoryLength(char *path) {
         u32 path_len = getLength(path);
         u32 dir_len = path_len;
-        while (path[dir_len] != '/' && path[dir_len] != '\\') dir_len--;
+        while ((path[dir_len] != '/') && (path[dir_len] != '\\')) dir_len--;
         return dir_len + 1;
     }
 };
@@ -850,7 +850,7 @@ struct NumberString {
     String string{_buffer, 0};
     char _buffer[13]{};
 
-    explicit NumberString(u8 digit_count = 3) : string{_buffer, 1}, float_digits_count{digit_count} {
+    explicit NumberString(u8 digit_count = 3) : float_digits_count{digit_count}, string{_buffer, 1} {
         _buffer[12] = 0;
         for (u8 i = 0; i < 12; i++)
             _buffer[i] = ' ';
@@ -861,10 +861,10 @@ struct NumberString {
         char *char_ptr = (char*)str;
         string.length = (u8)String::getLength(char_ptr);
         if (string.length > 12) string.length = 12;
-        if (*str >= '0' && *str <= '9') {
+        if ((*str >= '0') && (*str <= '9')) {
             char_ptr += string.length;
             char_ptr--;
-            for (char i = 11; i >= 0; i--, char_ptr--)
+            for (i32 i = 11; i >= 0; i--, char_ptr--)
                 _buffer[i] = (11 - i) < float_digits_count ? *char_ptr : ' ';
         } else {
             for (u8 i = 0; i < string.length; i++, char_ptr++) _buffer[i] = *char_ptr;
@@ -1059,8 +1059,8 @@ struct vec2i {
     explicit vec2i(i32 value) noexcept : vec2i{value, value} {}
 
     INLINE bool operator == (const vec2i &other) const {
-        return other.x == x &&
-               other.y == y;
+        return (other.x == x) &&
+               (other.y == y);
     }
 
     INLINE vec2i & operator = (f32 value) {
@@ -1316,8 +1316,8 @@ struct vec2 {
     explicit vec2(const vec2i &other) noexcept : vec2{(f32)other.x, (f32)other.y} {}
 
     INLINE bool operator == (const vec2 &other) const {
-        return other.x == x &&
-               other.y == y;
+        return (other.x == x) &&
+               (other.y == y);
     }
 
     INLINE vec2 & operator = (f32 value) {
@@ -2072,7 +2072,7 @@ struct Canvas {
         Pixel pixel{color, opacity};
         Pixel *out_pixel = pixels + offset;
         f32 *out_depth = depths ? (depths + (antialias == MSAA ? offset * 4 : offset)) : nullptr;
-        if (opacity == 1.0f && depth == 0.0f && z_top == 0.0f && z_bottom == 0.0f && z_right == 0.0f) {
+        if ((opacity == 1.0f) && (depth == 0.0f) && (z_top == 0.0f) && (z_bottom == 0.0f) && (z_right == 0.0f)) {
             *out_pixel = pixel;
             if (depths) {
                 out_depth[0] = 0;
@@ -2174,7 +2174,12 @@ struct Canvas {
 
 private:
     static INLINE bool _isTransparentPixelQuad(Pixel *pixel_quad) {
-        return pixel_quad->opacity == 0.0f && pixel_quad[1].opacity == 0.0f  && pixel_quad[2].opacity == 0.0f  && pixel_quad[3].opacity == 0.0f;
+        return (
+                (pixel_quad[0].opacity) == 0.0f &&
+                (pixel_quad[1].opacity == 0.0f) &&
+                (pixel_quad[2].opacity == 0.0f) &&
+                (pixel_quad[3].opacity == 0.0f)
+                );
     }
 
     static INLINE Pixel _blendPixelQuad(Pixel *pixel_quad) {
@@ -2334,7 +2339,7 @@ void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &can
     f32 first_y, last_y;
     i32 start_x, end_x;
     i32 start_y, end_y;
-    bool has_depth = canvas.depths != nullptr && z1 != 0.0f || z2 != 0.0f;
+    bool has_depth = (canvas.depths != nullptr) && ((z1 != 0.0f) || (z2 != 0.0f));
     if (fabsf(dx) > fabsf(dy)) { // Shallow:
         if (x2 < x1) { // Left to right:
             tmp = x2; x2 = x1; x1 = tmp;
@@ -2987,8 +2992,8 @@ void _fillTriangle(f32 x1, f32 y1,
         C = C_start;
 
         for (u32 x = first_x; x <= last_x; x++, B += Bdx, C += Cdx) {
-            if (Bdx < 0 && B < 0 ||
-                Cdx < 0 && C < 0)
+            if (((Bdx < 0) && (B < 0)) ||
+                ((Cdx < 0) && (C < 0)))
                 break;
 
             A = 1 - B - C;
@@ -3242,8 +3247,8 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
         } else if (character == '\t') {
             t_offset = FONT_WIDTH * (4 - ((current_x / FONT_WIDTH) & 3));
             current_x += t_offset;
-        } else if (character >= FIRST_CHARACTER_CODE &&
-                   character <= LAST_CHARACTER_CODE) {
+        } else if ((character >= FIRST_CHARACTER_CODE) &&
+                   (character <= LAST_CHARACTER_CODE)) {
             byte_ptr = char_addr[character - FIRST_CHARACTER_CODE];
             byte = *byte_ptr;
             next_column_byte = *(byte_ptr + 1);
@@ -3288,7 +3293,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
                 if (current_y > bounds.bottom)
                     break;
 
-                while (character && character != '\n') character = *++str;
+                while (character && (character != '\n')) character = *++str;
                 if (!character)
                     break;
 
@@ -3494,14 +3499,14 @@ inline UINT getRawInput(LPVOID data) {
     return GetRawInputData(raw_input_handle, RID_INPUT, data, raw_input_size_ptr, raw_input_header_size);
 }
 inline bool hasRawInput() {
-    return getRawInput(0) == 0 && raw_input_size != 0;
+    return (getRawInput(0) == 0) && (raw_input_size != 0);
 }
 inline bool hasRawMouseInput(LPARAM lParam) {
     raw_input_handle = (HRAWINPUT)(lParam);
     return (
-            hasRawInput() &&
-            getRawInput((LPVOID)&raw_inputs) == raw_input_size &&
-            raw_inputs.header.dwType == RIM_TYPEMOUSE
+            (hasRawInput()) &&
+            (getRawInput((LPVOID)&raw_inputs) == raw_input_size) &&
+            (raw_inputs.header.dwType == RIM_TYPEMOUSE)
     );
 }
 

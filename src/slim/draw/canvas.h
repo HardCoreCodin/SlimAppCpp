@@ -77,7 +77,7 @@ struct Canvas {
         Pixel pixel{color, opacity};
         Pixel *out_pixel = pixels + offset;
         f32 *out_depth = depths ? (depths + (antialias == MSAA ? offset * 4 : offset)) : nullptr;
-        if (opacity == 1.0f && depth == 0.0f && z_top == 0.0f && z_bottom == 0.0f && z_right == 0.0f) {
+        if ((opacity == 1.0f) && (depth == 0.0f) && (z_top == 0.0f) && (z_bottom == 0.0f) && (z_right == 0.0f)) {
             *out_pixel = pixel;
             if (depths) {
                 out_depth[0] = 0;
@@ -179,7 +179,12 @@ struct Canvas {
 
 private:
     static INLINE bool _isTransparentPixelQuad(Pixel *pixel_quad) {
-        return pixel_quad->opacity == 0.0f && pixel_quad[1].opacity == 0.0f  && pixel_quad[2].opacity == 0.0f  && pixel_quad[3].opacity == 0.0f;
+        return (
+                (pixel_quad[0].opacity == 0.0f) &&
+                (pixel_quad[1].opacity == 0.0f) &&
+                (pixel_quad[2].opacity == 0.0f) &&
+                (pixel_quad[3].opacity == 0.0f)
+                );
     }
 
     static INLINE Pixel _blendPixelQuad(Pixel *pixel_quad) {

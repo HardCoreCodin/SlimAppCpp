@@ -172,8 +172,8 @@ struct RangeOf {
     RangeOf(T first, T last) : first{first}, last{last} {}
     RangeOf(const RangeOf<T> &other) : RangeOf{other.first, other.last} {}
 
-    INLINE bool contains(i32 v) const { return first <= v && v <= last; }
-    INLINE bool bounds(i32 v) const { return first < v && v < last; }
+    INLINE bool contains(i32 v) const { return (first <= v) && (v <= last); }
+    INLINE bool bounds(i32 v) const { return (first < v) && (v < last); }
     INLINE bool operator!() const { return last < first; }
     INLINE bool operator[](T v) const { return contains(v); }
     INLINE bool operator()(T v) const { return bounds(v); }

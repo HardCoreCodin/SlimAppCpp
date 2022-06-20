@@ -123,8 +123,8 @@ void _fillTriangle(f32 x1, f32 y1,
         C = C_start;
 
         for (u32 x = first_x; x <= last_x; x++, B += Bdx, C += Cdx) {
-            if (Bdx < 0 && B < 0 ||
-                Cdx < 0 && C < 0)
+            if (((Bdx < 0) && (B < 0)) ||
+                ((Cdx < 0) && (C < 0)))
                 break;
 
             A = 1 - B - C;

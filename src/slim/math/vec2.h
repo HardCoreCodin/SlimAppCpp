@@ -14,8 +14,8 @@ struct vec2i {
     explicit vec2i(i32 value) noexcept : vec2i{value, value} {}
 
     INLINE bool operator == (const vec2i &other) const {
-        return other.x == x &&
-               other.y == y;
+        return (other.x == x) &&
+               (other.y == y);
     }
 
     INLINE vec2i & operator = (f32 value) {
@@ -271,8 +271,8 @@ struct vec2 {
     explicit vec2(const vec2i &other) noexcept : vec2{(f32)other.x, (f32)other.y} {}
 
     INLINE bool operator == (const vec2 &other) const {
-        return other.x == x &&
-               other.y == y;
+        return (other.x == x) &&
+               (other.y == y);
     }
 
     INLINE vec2 & operator = (f32 value) {

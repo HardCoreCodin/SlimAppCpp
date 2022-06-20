@@ -146,8 +146,8 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
         } else if (character == '\t') {
             t_offset = FONT_WIDTH * (4 - ((current_x / FONT_WIDTH) & 3));
             current_x += t_offset;
-        } else if (character >= FIRST_CHARACTER_CODE &&
-                   character <= LAST_CHARACTER_CODE) {
+        } else if ((character >= FIRST_CHARACTER_CODE) &&
+                   (character <= LAST_CHARACTER_CODE)) {
             byte_ptr = char_addr[character - FIRST_CHARACTER_CODE];
             byte = *byte_ptr;
             next_column_byte = *(byte_ptr + 1);
@@ -192,7 +192,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
                 if (current_y > bounds.bottom)
                     break;
 
-                while (character && character != '\n') character = *++str;
+                while (character && (character != '\n')) character = *++str;
                 if (!character)
                     break;
 
