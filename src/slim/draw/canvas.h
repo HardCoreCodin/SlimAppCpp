@@ -15,7 +15,7 @@ struct Canvas {
     Pixel *pixels{nullptr};
     f32 *depths{nullptr};
 
-    AntiAliasing antialias{NoAA};
+    AntiAliasing antialias;
 
     Canvas(AntiAliasing antialiasing = NoAA) : antialias{antialiasing} {
         if (memory::canvas_memory_capacity) {
@@ -32,7 +32,7 @@ struct Canvas {
         }
     }
 
-    Canvas(i32 width = window::width, i32 height = window::height, AntiAliasing antialiasing = NoAA) : Canvas{antialiasing} {
+    Canvas(i32 width, i32 height, AntiAliasing antialiasing = NoAA) : Canvas{antialiasing} {
         dimensions.update(width, height);
     }
 
