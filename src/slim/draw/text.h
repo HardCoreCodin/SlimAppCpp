@@ -111,7 +111,7 @@ u8 *char_addr[] = {bitmap_32,bitmap_33,bitmap_34,bitmap_35,bitmap_36,bitmap_37,b
 
 
 
-void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
+void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, const Color &color, f32 opacity, const RectI *viewport_bounds) {
     RectI bounds{
         0, canvas.dimensions.width - 1,
         0, canvas.dimensions.height - 1
@@ -125,8 +125,6 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
     if (x + FONT_WIDTH < bounds.left || x - FONT_WIDTH > bounds.right ||
         y + FONT_HEIGHT < bounds.top || y - FONT_HEIGHT > bounds.bottom)
         return;
-
-    color.gammaCorrect();
 
     f32 pixel_opacity;
     u16 current_x = (u16)x;
@@ -171,8 +169,7 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
                                 if (byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
                                 if (next_column_byte & (0x80 >> h)) pixel_opacity += 0.25f;
                                 if (next_column_byte & (0x80 >> (h+1))) pixel_opacity += 0.25f;
-                                if (pixel_opacity != 0.0f)
-                                    canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity * opacity);
+                                if (pixel_opacity != 0.0f) canvas.setPixel(pixel_x, pixel_y, color, pixel_opacity);
                             }
                         }
 
@@ -205,14 +202,14 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color, f32 o
 }
 
 #ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
-INLINE void Canvas::drawText(char *str, i32 x, i32 y, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawText(char *str, i32 x, i32 y, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawText(str, x, y, *this, color, opacity, viewport_bounds);
 }
 #ifdef SLIM_VEC2
-INLINE void Canvas::drawText(char *str, vec2i position, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawText(char *str, vec2i position, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawText(str, position.x, position.y, *this, color, opacity, viewport_bounds);
 }
-INLINE void Canvas::drawText(char *str, vec2 position, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawText(char *str, vec2 position, const Color &color, f32 opacity, const RectI *viewport_bounds) const  {
     _drawText(str, (i32)position.x, (i32)position.y, *this, color, opacity, viewport_bounds);
 }
 #endif

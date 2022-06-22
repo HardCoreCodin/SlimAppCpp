@@ -26,7 +26,7 @@ void _drawHUD(const HUD &hud, const Canvas &canvas, const RectI *viewport_bounds
 }
 
 #ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
-INLINE void Canvas::drawHUD(const HUD &hud, const RectI *viewport_bounds) {
+INLINE void Canvas::drawHUD(const HUD &hud, const RectI *viewport_bounds) const {
     _drawHUD(hud, *this, viewport_bounds);
 }
 #endif

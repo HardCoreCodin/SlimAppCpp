@@ -425,6 +425,22 @@ struct Color {
         return *this;
     }
 
+    INLINE Color operator + (const Color &rhs) const {
+        return {
+                r + rhs.r,
+                g + rhs.g,
+                b + rhs.b
+        };
+    }
+
+    INLINE Color operator + (f32 scalar) const {
+        return {
+                r + scalar,
+                g + scalar,
+                b + scalar
+        };
+    }
+
     INLINE Color& operator += (const Color &rhs) {
         r += rhs.r;
         g += rhs.g;
@@ -432,20 +448,103 @@ struct Color {
         return *this;
     }
 
+    INLINE Color& operator += (f32 scalar) {
+        r += scalar;
+        g += scalar;
+        b += scalar;
+        return *this;
+    }
+
     INLINE Color operator - (const Color &rhs) const {
         return {
-            r - rhs.r,
-            g - rhs.g,
-            b - rhs.b
+                r - rhs.r,
+                g - rhs.g,
+                b - rhs.b
         };
     }
 
-    INLINE Color operator * (f32 factor) const {
+    INLINE Color operator - (f32 scalar) const {
         return {
-            r * factor,
-            g * factor,
-            b * factor
+                r - scalar,
+                g - scalar,
+                b - scalar
         };
+    }
+
+    INLINE Color& operator -= (const Color &rhs) {
+        r -= rhs.r;
+        g -= rhs.g;
+        b -= rhs.b;
+        return *this;
+    }
+
+    INLINE Color& operator -= (f32 scalar) {
+        r -= scalar;
+        g -= scalar;
+        b -= scalar;
+        return *this;
+    }
+
+    INLINE Color operator * (const Color &rhs) const {
+        return {
+                r * rhs.r,
+                g * rhs.g,
+                b * rhs.b
+        };
+    }
+
+    INLINE Color operator * (f32 scalar) const {
+        return {
+                r * scalar,
+                g * scalar,
+                b * scalar
+        };
+    }
+
+    INLINE Color& operator *= (const Color &rhs) {
+        r *= rhs.r;
+        g *= rhs.g;
+        b *= rhs.b;
+        return *this;
+    }
+
+    INLINE Color& operator *= (f32 scalar) {
+        r *= scalar;
+        g *= scalar;
+        b *= scalar;
+        return *this;
+    }
+
+    INLINE Color operator / (const Color &rhs) const {
+        return {
+                r / rhs.r,
+                g / rhs.g,
+                b / rhs.b
+        };
+    }
+
+    INLINE Color operator / (f32 scalar) const {
+        scalar = 1.0f / scalar;
+        return {
+                r * scalar,
+                g * scalar,
+                b * scalar
+        };
+    }
+
+    INLINE Color& operator /= (const Color &rhs) {
+        r /= rhs.r;
+        g /= rhs.g;
+        b /= rhs.b;
+        return *this;
+    }
+
+    INLINE Color& operator /= (f32 scalar) {
+        scalar = 1.0f / scalar;
+        r *= scalar;
+        g *= scalar;
+        b *= scalar;
+        return *this;
     }
 
     INLINE Color lerpTo(const Color &to, f32 by) const {
@@ -454,17 +553,17 @@ struct Color {
 
     INLINE Color scaleAdd(f32 factor, const Color &to_be_added) const {
         return {
-            fast_mul_add(r, factor, to_be_added.r),
-            fast_mul_add(g, factor, to_be_added.g),
-            fast_mul_add(b, factor, to_be_added.b)
+                fast_mul_add(r, factor, to_be_added.r),
+                fast_mul_add(g, factor, to_be_added.g),
+                fast_mul_add(b, factor, to_be_added.b)
         };
     }
 
     INLINE Color blendWith(const Color &other_color, f32 factor, f32 other_factor) const {
         return {
-            fast_mul_add(r, factor, other_color.r * other_factor),
-            fast_mul_add(g, factor, other_color.g * other_factor),
-            fast_mul_add(b, factor, other_color.b * other_factor)
+                fast_mul_add(r, factor, other_color.r * other_factor),
+                fast_mul_add(g, factor, other_color.g * other_factor),
+                fast_mul_add(b, factor, other_color.b * other_factor)
         };
     }
 };
@@ -479,8 +578,8 @@ struct Pixel {
 
     INLINE Pixel operator * (f32 factor) const {
         return {
-            color * factor,
-            opacity * factor
+                color * factor,
+                opacity * factor
         };
     }
 
@@ -490,25 +589,37 @@ struct Pixel {
         return *this;
     }
 
-    INLINE Pixel alphaBlendOver(const Pixel &background) const {
-        f32 background_opacity = background.opacity * (1.0f - opacity);
-        f32 new_opacity = background_opacity + opacity;
-        f32 one_over_opacity = new_opacity == 0 ? 1.0f : 1.0f / new_opacity;
+    INLINE Pixel alphaBlendOver(const Pixel &background, bool premultiplied) const {
+        const f32 one_minus_opacity = 1.0f - opacity;
+        const f32 background_opacity = background.opacity * one_minus_opacity;
+        const f32 new_opacity = background_opacity + opacity;
+        if (premultiplied)
+            return {color + (background.color * one_minus_opacity), new_opacity};
+
+        f32 one_over_opacity = new_opacity == 0 ? 0.0f : 1.0f / new_opacity;
         return {
                 color.blendWith(
-                    background.color,
-                    one_over_opacity * opacity,
-                    one_over_opacity * background_opacity
+                        background.color,
+                        one_over_opacity * opacity,
+                        one_over_opacity * background_opacity
                 ),
                 new_opacity
         };
     }
 
-    INLINE u32 asContent(bool premultiply = false) const {
-        u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(premultiply ? color.r * opacity : color.r)));
-        u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(premultiply ? color.g * opacity : color.g)));
-        u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(premultiply ? color.b * opacity : color.b)));
-        return R << 16 | G << 8 | B;
+    INLINE u32 asContent(bool premultiplied) const {
+        if (premultiplied) {
+            f32 one_over_opacity = 1.0f / opacity;
+            u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.r)));
+            u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.g)));
+            u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.b)));
+            return R << 16 | G << 8 | B;
+        } else {
+            u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.r * opacity)));
+            u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.g * opacity)));
+            u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.b * opacity)));
+            return R << 16 | G << 8 | B;
+        }
     }
 };
 

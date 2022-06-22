@@ -11,15 +11,15 @@ void _drawNumber(i32 number, i32 x, i32 y, const Canvas &canvas, const Color &co
 
 
 #ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-INLINE void Canvas::drawNumber(i32 number, i32 x, i32 y, const Color &color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawNumber(i32 number, i32 x, i32 y, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawNumber(number, x, y, *this, color, opacity, viewport_bounds);
 }
 
 #ifdef SLIM_VEC2
-INLINE void Canvas::drawNumber(i32 number, vec2i position, const Color &color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawNumber(i32 number, vec2i position, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawNumber(number, position.x, position.y, *this, color, opacity, viewport_bounds);
 }
-INLINE void Canvas::drawNumber(i32 number, vec2 position, const Color &color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawNumber(i32 number, vec2 position, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawNumber(number, (i32)position.x, (i32)position.y, *this, color, opacity, viewport_bounds);
 }
 #endif

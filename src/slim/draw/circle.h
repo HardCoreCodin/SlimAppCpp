@@ -3,7 +3,7 @@
 #include "canvas.h"
 
 void _paintCircle(bool fill, i32 center_x, i32 center_y, i32 radius, const Canvas &canvas,
-                  Color color, f32 opacity, const RectI *viewport_bounds) {
+                  const Color &color, f32 opacity, const RectI *viewport_bounds) {
     RectI bounds{0, canvas.dimensions.width - 1, 0, canvas.dimensions.height - 1};
     RectI rect{center_x - radius,
                center_x + radius,
@@ -103,26 +103,26 @@ void _paintCircle(bool fill, i32 center_x, i32 center_y, i32 radius, const Canva
 
 
 #ifdef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-INLINE void Canvas::fillCircle(i32 center_x, i32 center_y, i32 radius, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::fillCircle(i32 center_x, i32 center_y, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(true, center_x, center_y, radius, *this, color, opacity, viewport_bounds);
 }
 
-INLINE void Canvas::drawCircle(i32 center_x, i32 center_y, i32 radius, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawCircle(i32 center_x, i32 center_y, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(false, center_x, center_y, radius, *this, color, opacity, viewport_bounds);
 }
 
 #ifdef SLIM_VEC2
-INLINE void Canvas::drawCircle(vec2i center, i32 radius, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawCircle(vec2i center, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(false, center.x, center.y, radius, *this, color, opacity, viewport_bounds);
 }
 
-INLINE void Canvas::fillCircle(vec2i center, i32 radius, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::fillCircle(vec2i center, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(true, center.x, center.y, radius, *this, color, opacity, viewport_bounds);
 }
-INLINE void Canvas::drawCircle(vec2 center, i32 radius, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawCircle(vec2 center, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(false, (i32)center.x, (i32)center.y, radius, *this, color, opacity, viewport_bounds);
 }
-INLINE void Canvas::fillCircle(vec2 center, i32 radius, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::fillCircle(vec2 center, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(true, (i32)center.x, (i32)center.y, radius, *this, color, opacity, viewport_bounds);
 }
 #endif

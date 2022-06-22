@@ -2,7 +2,7 @@
 
 #include "./line.h"
 
-void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
+void _drawRect(RectI rect, const Canvas &canvas, const Color &color, f32 opacity, const RectI *viewport_bounds) {
     RectI bounds{0, canvas.dimensions.width - 1, 0, canvas.dimensions.height - 1};
     if (viewport_bounds) {
         bounds -= *viewport_bounds;
@@ -25,8 +25,6 @@ void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     rect = bounds - rect;
     if (!rect)
         return;
-
-    color.gammaCorrect();
 
     if (canvas.antialias == SSAA) {
         rect *= 2;
@@ -81,7 +79,7 @@ void _drawRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     }
 }
 
-void _fillRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const RectI *viewport_bounds) {
+void _fillRect(RectI rect, const Canvas &canvas, const Color &color, f32 opacity, const RectI *viewport_bounds) {
     RectI bounds{0, canvas.dimensions.width - 1, 0, canvas.dimensions.height - 1};
     if (viewport_bounds) {
         bounds -= *viewport_bounds;
@@ -94,8 +92,6 @@ void _fillRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
     rect = bounds - rect;
     if (!rect)
         return;
-
-    color.gammaCorrect();
 
     if (canvas.antialias == SSAA) {
         rect *= 2;
@@ -116,20 +112,20 @@ void _fillRect(RectI rect, const Canvas &canvas, Color color, f32 opacity, const
 
 
 #ifdef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-INLINE void Canvas::drawRect(RectI rect, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawRect(RectI rect, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawRect(rect, *this, color, opacity, viewport_bounds);
 }
 
-INLINE void Canvas::drawRect(Rect rect, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::drawRect(Rect rect, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     RectI rectI{(i32)rect.left, (i32)rect.right, (i32)rect.top, (i32)rect.bottom};
     _drawRect(rectI, *this, color, opacity, viewport_bounds);
 }
 
-INLINE void Canvas::fillRect(RectI rect, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::fillRect(RectI rect, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _fillRect(rect, *this, color, opacity, viewport_bounds);
 }
 
-INLINE void Canvas::fillRect(Rect rect, Color color, f32 opacity, const RectI *viewport_bounds) {
+INLINE void Canvas::fillRect(Rect rect, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     RectI rectI{(i32)rect.left, (i32)rect.right, (i32)rect.top, (i32)rect.bottom};
     _fillRect(rectI, *this, color, opacity, viewport_bounds);
 }
