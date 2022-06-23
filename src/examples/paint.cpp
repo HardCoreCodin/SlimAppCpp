@@ -26,7 +26,6 @@ struct PaintApp : SlimApp {
             for (int x = 0; x < width; x++) {
                 color.red = (float)x * one_over_width;
                 color.blue = (float)y * one_over_height;
-                color.gammaCorrect();
                 canvas.setPixel(x, y, color);
             }
 

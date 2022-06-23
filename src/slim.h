@@ -1077,44 +1077,42 @@ struct NumberString {
 struct HUDLine {
     String title{}, alternate_value{};
     NumberString value{};
-    enum ColorID title_color{White};
-    enum ColorID value_color{White};
+    enum ColorID title_color{BrightGrey};
+    enum ColorID value_color{BrightGrey};
     enum ColorID alternate_value_color{Grey};
     bool *use_alternate{nullptr};
     bool invert_alternate_use{false};
 
-    HUDLine(enum ColorID default_color = White) :
+    HUDLine(enum ColorID default_color = BrightGrey) :
             title{},
             alternate_value{},
             value{},
             title_color{default_color},
-            value_color{default_color},
-            alternate_value_color{default_color} {}
+            value_color{default_color} {}
     HUDLine(char* title_char_ptr,
-            enum ColorID default_color = White) :
+            enum ColorID default_color = BrightGrey) :
             title{title_char_ptr},
             alternate_value{},
             value{},
             title_color{default_color},
-            value_color{default_color},
-            alternate_value_color{default_color} {}
-    HUDLine(char* title_char_ptr, char* value_char_ptr,
-            enum ColorID default_color = White) :
+            value_color{default_color} {}
+    HUDLine(char* title_char_ptr,
+            char* value_char_ptr,
+            enum ColorID default_color = BrightGrey) :
             title{title_char_ptr},
             alternate_value{},
             value{value_char_ptr},
             title_color{default_color},
-            value_color{default_color},
             alternate_value_color{default_color}
     {}
     HUDLine(char* title_char_ptr,
             char* value_char_ptr,
             char* alternate_value_char_ptr,
             bool *use_alternate = nullptr,
-            enum ColorID value_color = White,
-            enum ColorID alternate_value_color = White,
-            enum ColorID title_color = White,
-            bool invert_alternate_use = false) :
+            bool invert_alternate_use = false,
+            enum ColorID value_color = BrightGrey,
+            enum ColorID alternate_value_color = Grey,
+            enum ColorID title_color = BrightGrey) :
             title{title_char_ptr},
             alternate_value{alternate_value_char_ptr},
             value{value_char_ptr},
@@ -1129,24 +1127,25 @@ struct HUDLine {
 struct HUDSettings {
     u32 line_count{0};
     f32 line_height{1.0f};
-    enum ColorID default_color{White};
+    enum ColorID default_color{BrightGrey};
 
     HUDSettings(u32 line_count = 0,
                 f32 line_height = 1.0f,
-                ColorID default_color = White) : line_count{line_count}, line_height{line_height}, default_color{default_color} {}
+                ColorID default_color = BrightGrey) : line_count{line_count}, line_height{line_height}, default_color{default_color} {}
 };
 struct HUD {
     HUDSettings settings;
-    HUDLine *lines{nullptr};
-    i32 left, top;
+    HUDLine *lines = nullptr;
+    i32 left = 10, top = 10;
     bool enabled{true};
 
     HUD() = default;
     HUD(HUDSettings settings,
         HUDLine *lines,
-        i32 left = 10, i32 top = 10) :
+        i32 left = 10,
+        i32 top = 10) :
             settings{settings}, lines{lines}, left{left}, top{top} {
-        if (settings.default_color != White) for (u32 i = 0; i < settings.line_count; i++)
+        if (settings.default_color != BrightGrey) for (u32 i = 0; i < settings.line_count; i++)
                 lines[i].title_color = lines[i].alternate_value_color = lines[i].value_color = settings.default_color;
     }
     HUD(HUDSettings settings, memory::AllocateMemory allocate_memory = nullptr, i32 left = 10, i32 top = 10) : settings{settings}, left{left}, top{top} {
@@ -2231,17 +2230,31 @@ struct Canvas {
 
     INLINE void setPixel(i32 x, i32 y, const Color &color, f32 opacity = 1.0f, f32 depth = 0, f32 z_top = 0, f32 z_bottom = 0, f32 z_right = 0) const {
         u32 offset = antialias == SSAA ? ((dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)) : (dimensions.stride * y + x);
-        Pixel pixel{color, opacity};
-        pixel.color.gammaCorrect();
-        if (premultiply)
+        Pixel pixel{color * color, opacity};
+        if (premultiply && opacity != 1.0f)
             pixel.color *= pixel.opacity;
 
         Pixel *out_pixel = pixels + offset;
         f32 *out_depth = depths ? (depths + (antialias == MSAA ? offset * 4 : offset)) : nullptr;
-        if ((opacity == 1.0f) && (depth == 0.0f) && (z_top == 0.0f) && (z_bottom == 0.0f) && (z_right == 0.0f)) {
+        if (
+                (
+                        (out_depth == nullptr ||
+                         *out_depth == INFINITY) &&
+                        (out_pixel->color.r == 0) &&
+                        (out_pixel->color.g == 0) &&
+                        (out_pixel->color.b == 0)
+                ) ||
+                (
+                        (opacity == 1.0f) &&
+                        (depth == 0.0f) &&
+                        (z_top == 0.0f) &&
+                        (z_bottom == 0.0f) &&
+                        (z_right == 0.0f)
+                )
+                ) {
             *out_pixel = pixel;
             if (depths) {
-                out_depth[0] = 0;
+                out_depth[0] = depth;
                 if (antialias == MSAA) out_depth[1] = out_depth[2] = out_depth[3] = 0;
             }
 

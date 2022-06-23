@@ -66,8 +66,8 @@ struct Canvas {
 
     void drawFrom(Canvas &source_canvas, bool blend = true, bool include_depths = false, const RectI *viewport_bounds = nullptr) {
         RectI bounds{
-            0, dimensions.width < source_canvas.dimensions.width ? dimensions.width : source_canvas.dimensions.width,
-            0, dimensions.height < source_canvas.dimensions.height ? dimensions.height : source_canvas.dimensions.height
+                0, dimensions.width < source_canvas.dimensions.width ? dimensions.width : source_canvas.dimensions.width,
+                0, dimensions.height < source_canvas.dimensions.height ? dimensions.height : source_canvas.dimensions.height
         };
         if (viewport_bounds)
             bounds -= *viewport_bounds;
@@ -79,10 +79,10 @@ struct Canvas {
         for (i32 y = bounds.top; y < bounds.bottom; y++) {
             for (i32 x = bounds.left; x < bounds.right; x++) {
                 i32 src_offset = source_canvas.antialias == SSAA ? (
-                    (source_canvas.dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
+                        (source_canvas.dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
                 ) : (
-                    source_canvas.dimensions.stride * y + x
-                );
+                                         source_canvas.dimensions.stride * y + x
+                                 );
 
                 Pixel &pixel{source_canvas.pixels[src_offset]};
                 if ((pixel.opacity == 0.0f) || (
@@ -98,10 +98,10 @@ struct Canvas {
                     setPixel(x, y, pixel.color, pixel.opacity, include_depths ? depth : 0.0f);
                 } else {
                     i32 trg_offset = antialias == SSAA ? (
-                        (dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
+                            (dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)
                     ) : (
-                        dimensions.stride * y + x
-                    );
+                                             dimensions.stride * y + x
+                                     );
                     pixels[trg_offset] = source_canvas.pixels[src_offset];
                     if (include_depths && depth < depths[trg_offset])
                         depths[trg_offset] = depth;
@@ -126,17 +126,31 @@ struct Canvas {
 
     INLINE void setPixel(i32 x, i32 y, const Color &color, f32 opacity = 1.0f, f32 depth = 0, f32 z_top = 0, f32 z_bottom = 0, f32 z_right = 0) const {
         u32 offset = antialias == SSAA ? ((dimensions.stride * (y >> 1) + (x >> 1)) * 4 + (2 * (y & 1)) + (x & 1)) : (dimensions.stride * y + x);
-        Pixel pixel{color, opacity};
-        pixel.color.gammaCorrect();
-        if (premultiply)
+        Pixel pixel{color * color, opacity};
+        if (premultiply && opacity != 1.0f)
             pixel.color *= pixel.opacity;
 
         Pixel *out_pixel = pixels + offset;
         f32 *out_depth = depths ? (depths + (antialias == MSAA ? offset * 4 : offset)) : nullptr;
-        if ((opacity == 1.0f) && (depth == 0.0f) && (z_top == 0.0f) && (z_bottom == 0.0f) && (z_right == 0.0f)) {
+        if (
+                (
+                        (out_depth == nullptr ||
+                         *out_depth == INFINITY) &&
+                        (out_pixel->color.r == 0) &&
+                        (out_pixel->color.g == 0) &&
+                        (out_pixel->color.b == 0)
+                ) ||
+                (
+                        (opacity == 1.0f) &&
+                        (depth == 0.0f) &&
+                        (z_top == 0.0f) &&
+                        (z_bottom == 0.0f) &&
+                        (z_right == 0.0f)
+                )
+                ) {
             *out_pixel = pixel;
             if (depths) {
-                out_depth[0] = 0;
+                out_depth[0] = depth;
                 if (antialias == MSAA) out_depth[1] = out_depth[2] = out_depth[3] = 0;
             }
 
@@ -164,24 +178,24 @@ struct Canvas {
 
     INLINE u32 getPixelContent(Pixel *pixel) const {
         return antialias == SSAA ?
-            _isTransparentPixelQuad(pixel) ? 0 : _blendPixelQuad(pixel).asContent(premultiply) :
-            pixel->opacity ? pixel->asContent(premultiply) : 0;
+               _isTransparentPixelQuad(pixel) ? 0 : _blendPixelQuad(pixel).asContent(premultiply) :
+               pixel->opacity ? pixel->asContent(premultiply) : 0;
     }
 
 #ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
     INLINE void drawText(char *str, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawText(char *str, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawText(char *str, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
     INLINE void drawNumber(i32 number, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawNumber(i32 number, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawNumber(i32 number, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
@@ -196,10 +210,10 @@ struct Canvas {
     INLINE void drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawLine(f32 x1, f32 y1, f32 x2, f32 y2, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
 
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawLine(vec2 from, vec2 to, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawLine(vec2i from, vec2i to, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
@@ -215,23 +229,23 @@ struct Canvas {
     INLINE void fillTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillTriangle(i32 x1, i32 y1, i32 x2, i32 y2, i32 x3, i32 y3, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawTriangle(vec2 p1, vec2 p2, vec2 p3, const Color &color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillTriangle(vec2 p1, vec2 p2, vec2 p3, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawTriangle(vec2i p1, vec2i p2, vec2i p3, const Color &color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillTriangle(vec2i p1, vec2i p2, vec2i p3, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #endif
+#endif
 #endif
 
 #ifdef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
     INLINE void fillCircle(i32 center_x, i32 center_y, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawCircle(i32 center_x, i32 center_y, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #ifdef SLIM_VEC2
+#ifdef SLIM_VEC2
     INLINE void drawCircle(vec2i center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillCircle(vec2i center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawCircle(vec2 center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillCircle(vec2 center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-    #endif
+#endif
 #endif
 
 private:
@@ -241,7 +255,7 @@ private:
                 (pixel_quad[1].opacity == 0.0f) &&
                 (pixel_quad[2].opacity == 0.0f) &&
                 (pixel_quad[3].opacity == 0.0f)
-                );
+        );
     }
 
     INLINE Pixel _blendPixelQuad(Pixel *pixel_quad) const {
@@ -257,32 +271,32 @@ private:
             BR_factor *= BR.opacity;
         }
         return {
-            {
+                {
+                        (
+                                (TL.color.r * TL_factor) +
+                                (TR.color.r * TR_factor) +
+                                (BL.color.r * BL_factor) +
+                                (BR.color.r * BR_factor)
+                        ),
+                        (
+                                (TL.color.g * TL_factor) +
+                                (TR.color.g * TR_factor) +
+                                (BL.color.g * BL_factor) +
+                                (BR.color.g * BR_factor)
+                        ),
+                        (
+                                (TL.color.b * TL_factor) +
+                                (TR.color.b * TR_factor) +
+                                (BL.color.b * BL_factor) +
+                                (BR.color.b * BR_factor)
+                        )
+                },
                 (
-                    (TL.color.r * TL_factor) +
-                    (TR.color.r * TR_factor) +
-                    (BL.color.r * BL_factor) +
-                    (BR.color.r * BR_factor)
-                ),
-                (
-                    (TL.color.g * TL_factor) +
-                    (TR.color.g * TR_factor) +
-                    (BL.color.g * BL_factor) +
-                    (BR.color.g * BR_factor)
-                ),
-                (
-                    (TL.color.b * TL_factor) +
-                    (TR.color.b * TR_factor) +
-                    (BL.color.b * BL_factor) +
-                    (BR.color.b * BR_factor)
+                        TL_factor +
+                        TR_factor +
+                        BL_factor +
+                        BR_factor
                 )
-            },
-            (
-                TL_factor +
-                TR_factor +
-                BL_factor +
-                BR_factor
-            )
         };
     }
 
