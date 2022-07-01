@@ -336,7 +336,7 @@ struct VizApp : SlimApp {
             if (t > 1) {
                 t = eased_t = 1;
             } else
-                eased_t = smoothstep(0, 1, t);
+                eased_t = smoothStep(0, 1, t);
 
             return active;
 

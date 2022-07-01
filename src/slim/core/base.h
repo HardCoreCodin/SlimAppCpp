@@ -152,9 +152,18 @@ INLINE i32 clampedValue(i32 value) {
     return mn > 0 ? mn : 0;
 }
 
-f32 smoothstep(f32 from, f32 to, f32 t) {
+INLINE f32 smoothStep(f32 from, f32 to, f32 t) {
     t = (t - from) / (to - from);
-    return t * t * (3 - 2 * t);
+    return t * t * (3.0f - 2.0f * t);
+}
+
+INLINE f32 approach(f32 src, f32 trg, f32 diff) {
+    f32 out;
+
+    out = src + diff; if (trg > out) return out;
+    out = src - diff; if (trg < out) return out;
+
+    return trg;
 }
 
 template <typename T>
@@ -263,20 +272,6 @@ struct Move {
     bool forward{false};
     bool backward{false};
 };
-
-INLINE f32 smoothStep(f32 from, f32 to, f32 t) {
-    t = (t - from) / (to - from);
-    return t * t * (3.0f - 2.0f * t);
-}
-
-INLINE f32 approach(f32 src, f32 trg, f32 diff) {
-    f32 out;
-
-    out = src + diff; if (trg > out) return out;
-    out = src - diff; if (trg < out) return out;
-
-    return trg;
-}
 
 enum ColorID {
     Black,
@@ -418,13 +413,6 @@ struct Color {
         }
     }
 
-    INLINE Color& gammaCorrect() {
-        r *= r;
-        g *= g;
-        b *= b;
-        return *this;
-    }
-
     INLINE Color operator + (const Color &rhs) const {
         return {
                 r + rhs.r,
@@ -487,17 +475,17 @@ struct Color {
 
     INLINE Color operator * (const Color &rhs) const {
         return {
-                r * rhs.r,
-                g * rhs.g,
-                b * rhs.b
+            r * rhs.r,
+            g * rhs.g,
+            b * rhs.b
         };
     }
 
     INLINE Color operator * (f32 scalar) const {
         return {
-                r * scalar,
-                g * scalar,
-                b * scalar
+            r * scalar,
+            g * scalar,
+            b * scalar
         };
     }
 
@@ -558,14 +546,6 @@ struct Color {
                 fast_mul_add(b, factor, to_be_added.b)
         };
     }
-
-    INLINE Color blendWith(const Color &other_color, f32 factor, f32 other_factor) const {
-        return {
-                fast_mul_add(r, factor, other_color.r * other_factor),
-                fast_mul_add(g, factor, other_color.g * other_factor),
-                fast_mul_add(b, factor, other_color.b * other_factor)
-        };
-    }
 };
 
 struct Pixel {
@@ -578,8 +558,15 @@ struct Pixel {
 
     INLINE Pixel operator * (f32 factor) const {
         return {
-                color * factor,
-                opacity * factor
+            color * factor,
+            opacity * factor
+        };
+    }
+
+    INLINE Pixel operator + (const Pixel &rhs) const {
+        return {
+            color + rhs.color,
+            opacity + rhs.opacity
         };
     }
 
@@ -589,37 +576,21 @@ struct Pixel {
         return *this;
     }
 
-    INLINE Pixel alphaBlendOver(const Pixel &background, bool premultiplied) const {
-        const f32 one_minus_opacity = 1.0f - opacity;
-        const f32 background_opacity = background.opacity * one_minus_opacity;
-        const f32 new_opacity = background_opacity + opacity;
-        if (premultiplied)
-            return {color + (background.color * one_minus_opacity), new_opacity};
-
-        f32 one_over_opacity = new_opacity == 0 ? 0.0f : 1.0f / new_opacity;
-        return {
-                color.blendWith(
-                        background.color,
-                        one_over_opacity * opacity,
-                        one_over_opacity * background_opacity
-                ),
-                new_opacity
-        };
+    INLINE Pixel& operator *= (const Pixel &rhs) {
+        color *= rhs.color;
+        opacity *= rhs.opacity;
+        return *this;
     }
 
-    INLINE u32 asContent(bool premultiplied) const {
-        if (premultiplied) {
-            f32 one_over_opacity = 1.0f / opacity;
-            u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.r)));
-            u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.g)));
-            u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.b)));
-            return R << 16 | G << 8 | B;
-        } else {
-            u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.r * opacity)));
-            u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.g * opacity)));
-            u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.b * opacity)));
-            return R << 16 | G << 8 | B;
-        }
+    INLINE Pixel alphaBlendOver(const Pixel &background) const {
+        return *this + background * (1.0f - opacity);
+    }
+
+    INLINE u32 asContent() const {
+        u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.r)));
+        u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.g)));
+        u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.b)));
+        return R << 16 | G << 8 | B;
     }
 };
 
