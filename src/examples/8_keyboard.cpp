@@ -1,7 +1,4 @@
 #define SLIMMER
-#define SLIM_DISABLE_ALL_CANVAS_DRAWING
-#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
-#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
 
 #include "../slim/app.h"
 #include "../slim/draw/text.h"

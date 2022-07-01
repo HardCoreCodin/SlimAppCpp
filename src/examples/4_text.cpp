@@ -1,11 +1,8 @@
 #define SLIMMER
-#define SLIM_DISABLE_ALL_CANVAS_DRAWING
-#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
-#define SLIM_ENABLE_CANVAS_NUMBER_DRAWING
 
 #include "../slim/math/vec2.h"
-#include "../slim/app.h"
 #include "../slim/draw/number.h"
+#include "../slim/app.h"
 // Or using the single-header file:
 //#include "../slim.h"
 

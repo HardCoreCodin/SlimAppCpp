@@ -1,10 +1,4 @@
 #define SLIMMER
-#define SLIM_DISABLE_ALL_CANVAS_DRAWING
-#define SLIM_ENABLE_CANVAS_LINE_DRAWING
-#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-#define SLIM_ENABLE_CANVAS_HUD_DRAWING
 
 #include "../slim/math/vec2.h"
 #include "../slim/draw/hud.h"
@@ -47,7 +41,7 @@ struct HUDApp : SlimApp {
         canvas.clear();
         drawShapes();
         if (hud.enabled)
-            canvas.drawHUD(hud);
+            drawHUD(hud, canvas);
         canvas.drawToWindow();
     }
 

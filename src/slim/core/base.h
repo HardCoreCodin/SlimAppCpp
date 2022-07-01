@@ -59,36 +59,6 @@ typedef signed   long int  i32;
 typedef float  f32;
 typedef double f64;
 
-#ifndef SLIM_DISABLE_ALL_CANVAS_DRAWING
-    #ifndef SLIM_ENABLE_CANVAS_TEXT_DRAWING
-        #define SLIM_ENABLE_CANVAS_TEXT_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-        #define SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_HUD_DRAWING
-        #define SLIM_ENABLE_CANVAS_HUD_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_LINE_DRAWING
-        #define SLIM_ENABLE_CANVAS_LINE_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-        #define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-        #define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-    #endif
-
-    #ifndef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-        #define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-    #endif
-#endif
-
 #ifndef CANVAS_COUNT
 #define CANVAS_COUNT 2
 #endif

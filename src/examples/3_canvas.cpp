@@ -1,16 +1,11 @@
 #define SLIMMER
-#define SLIM_DISABLE_ALL_CANVAS_DRAWING
-#define SLIM_ENABLE_CANVAS_LINE_DRAWING
-#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
 
 #include "../slim/math/vec2.h"
-#include "../slim/app.h"
 #include "../slim/draw/line.h"
 #include "../slim/draw/circle.h"
 #include "../slim/draw/triangle.h"
 #include "../slim/draw/rectangle.h"
+#include "../slim/app.h"
 
 // Or using the single-header file:
 //#include "../slim.h"

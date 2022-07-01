@@ -1,17 +1,14 @@
 #define SLIMMER
-#define SLIM_DISABLE_ALL_CANVAS_DRAWING
-#define SLIM_ENABLE_CANVAS_LINE_DRAWING
-#define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
-#define SLIM_ENABLE_CANVAS_HUD_DRAWING
 
 #include "../../slim/math/vec2.h"
-#include "../../slim/app.h"
 #include "../../slim/draw/line.h"
 #include "../../slim/draw/circle.h"
 #include "../../slim/draw/triangle.h"
 #include "../../slim/draw/hud.h"
+#include "../../slim/app.h"
+
+// Or using the single-header file:
+//#include "../../slim.h"
 
 struct VizApp : SlimApp {
     Canvas canvas;
@@ -474,7 +471,7 @@ struct VizApp : SlimApp {
                 canvas.drawText((char*)"using the radius and the distance of the closest point from the center", extra_message_pos + vec2{0, hud.settings.line_height * FONT_HEIGHT}, Step.value_color);
             }
 
-            canvas.drawHUD(hud);
+            drawHUD(hud, canvas);
             if (step == 1) {
                 if (point.position == ray.origin)
                     canvas.drawText((char*)"Click and drag the point", (i32)ray.origin.x - 100, (i32)ray.origin.y + point.radius * 3);

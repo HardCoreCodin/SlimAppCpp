@@ -1,9 +1,7 @@
 #define SLIMMER
-#define SLIM_DISABLE_ALL_CANVAS_DRAWING
-#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
 
-#include "../slim/app.h"
 #include "../slim/draw/text.h"
+#include "../slim/app.h"
 // Or using the single-header file:
 //#include "../slim.h"
 

@@ -61,37 +61,6 @@ typedef signed   long int  i32;
 typedef float  f32;
 typedef double f64;
 
-
-#ifndef SLIM_DISABLE_ALL_CANVAS_DRAWING
-#ifndef SLIM_ENABLE_CANVAS_TEXT_DRAWING
-#define SLIM_ENABLE_CANVAS_TEXT_DRAWING
-#endif
-
-#ifndef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-#define SLIM_ENABLE_CANVAS_NUMBER_DRAWING
-#endif
-
-#ifndef SLIM_ENABLE_CANVAS_HUD_DRAWING
-#define SLIM_ENABLE_CANVAS_HUD_DRAWING
-#endif
-
-#ifndef SLIM_ENABLE_CANVAS_LINE_DRAWING
-#define SLIM_ENABLE_CANVAS_LINE_DRAWING
-#endif
-
-#ifndef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
-#endif
-
-#ifndef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-#define SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
-#endif
-
-#ifndef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-#define SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
-#endif
-#endif
-
 #ifndef CANVAS_COUNT
 #define CANVAS_COUNT 2
 #endif
@@ -2265,27 +2234,18 @@ struct Canvas {
                pixel->opacity == 0.0f ? 0 : pixel->asContent();
     }
 
-#ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
     INLINE void drawText(char *str, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 #ifdef SLIM_VEC2
     INLINE void drawText(char *str, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawText(char *str, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 #endif
-#endif
 
-#ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
     INLINE void drawNumber(i32 number, i32 x, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 #ifdef SLIM_VEC2
     INLINE void drawNumber(i32 number, vec2i position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawNumber(i32 number, vec2 position, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 #endif
-#endif
 
-#ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
-    INLINE void drawHUD(const HUD &hud, const RectI *viewport_bounds = nullptr) const;
-#endif
-
-#ifdef SLIM_ENABLE_CANVAS_LINE_DRAWING
     INLINE void drawHLine(RangeI x_range, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawHLine(i32 x_start, i32 x_end, i32 y, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawVLine(RangeI y_range, i32 x, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
@@ -2297,16 +2257,12 @@ struct Canvas {
     INLINE void drawLine(vec2 from, vec2 to, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawLine(vec2i from, vec2i to, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
 #endif
-#endif
 
-#ifdef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
     INLINE void drawRect(RectI rect, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawRect(Rect rect, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillRect(RectI rect, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillRect(Rect rect, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-#endif
 
-#ifdef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
     INLINE void drawTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, const Color &color = White, f32 opacity = 1.0f, u8 line_width = 1, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawTriangle(i32 x1, i32 y1, i32 x2, i32 y2, i32 x3, i32 y3, const Color &color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
@@ -2318,9 +2274,7 @@ struct Canvas {
     INLINE void drawTriangle(vec2i p1, vec2i p2, vec2i p3, const Color &color = White, f32 opacity = 0.5f, u8 line_width = 0, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillTriangle(vec2i p1, vec2i p2, vec2i p3, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 #endif
-#endif
 
-#ifdef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
     INLINE void fillCircle(i32 center_x, i32 center_y, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawCircle(i32 center_x, i32 center_y, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
 #ifdef SLIM_VEC2
@@ -2328,7 +2282,6 @@ struct Canvas {
     INLINE void fillCircle(vec2i center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void drawCircle(vec2 center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
     INLINE void fillCircle(vec2 center, i32 radius, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) const;
-#endif
 #endif
 
 private:
@@ -2607,7 +2560,6 @@ void _drawLine(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2, const Canvas &can
 }
 
 
-#ifdef SLIM_ENABLE_CANVAS_LINE_DRAWING
 INLINE void Canvas::drawHLine(RangeI x_range, i32 y, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawHLine(x_range, y, *this, color, opacity, viewport_bounds);
 }
@@ -2639,8 +2591,6 @@ INLINE void Canvas::drawLine(vec2i from, vec2i to, const Color &color, f32 opaci
     _drawLine((f32)from.x, (f32)from.y, 0, (f32)to.x, (f32)to.y, 0, *this, color, opacity, line_width, viewport_bounds);
 }
 #endif
-#endif
-
 
 
 INLINE void drawHLine(RangeI x_range, i32 y, const Canvas &canvas, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
@@ -2783,8 +2733,6 @@ void _fillRect(RectI rect, const Canvas &canvas, const Color &color, f32 opacity
                 canvas.setPixel(x, y, color, opacity);
 }
 
-
-#ifdef SLIM_ENABLE_CANVAS_RECTANGLE_DRAWING
 INLINE void Canvas::drawRect(RectI rect, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawRect(rect, *this, color, opacity, viewport_bounds);
 }
@@ -2802,8 +2750,6 @@ INLINE void Canvas::fillRect(Rect rect, const Color &color, f32 opacity, const R
     RectI rectI{(i32)rect.left, (i32)rect.right, (i32)rect.top, (i32)rect.bottom};
     _fillRect(rectI, *this, color, opacity, viewport_bounds);
 }
-#endif
-
 
 INLINE void drawRect(RectI rect, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
     _drawRect(rect, canvas, color, opacity, viewport_bounds);
@@ -2925,8 +2871,6 @@ void _paintCircle(bool fill, i32 center_x, i32 center_y, i32 radius, const Canva
     }
 }
 
-
-#ifdef SLIM_ENABLE_CANVAS_CIRCLE_DRAWING
 INLINE void Canvas::fillCircle(i32 center_x, i32 center_y, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(true, center_x, center_y, radius, *this, color, opacity, viewport_bounds);
 }
@@ -2949,7 +2893,6 @@ INLINE void Canvas::drawCircle(vec2 center, i32 radius, const Color &color, f32 
 INLINE void Canvas::fillCircle(vec2 center, i32 radius, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _paintCircle(true, (i32)center.x, (i32)center.y, radius, *this, color, opacity, viewport_bounds);
 }
-#endif
 #endif
 
 
@@ -3128,8 +3071,6 @@ void _fillTriangle(f32 x1, f32 y1,
     }
 }
 
-
-#ifdef SLIM_ENABLE_CANVAS_TRIANGLE_DRAWING
 INLINE void Canvas::drawTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, const Color &color, f32 opacity, u8 line_width, const RectI *viewport_bounds) const {
     _drawTriangle(x1, y1, x2, y2, x3, y3, *this, color, opacity, line_width, viewport_bounds);
 }
@@ -3163,8 +3104,6 @@ INLINE void Canvas::fillTriangle(vec2i p1, vec2i p2, vec2i p3, const Color &colo
     _fillTriangle((f32)p1.x, (f32)p1.y, (f32)p2.x, (f32)p2.y, (f32)p3.x, (f32)p3.y, *this, color, opacity, viewport_bounds);
 }
 #endif
-#endif
-
 
 
 INLINE void drawTriangle(f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, const Canvas &canvas,
@@ -3422,7 +3361,6 @@ void _drawText(char *str, i32 x, i32 y, const Canvas &canvas, const Color &color
     }
 }
 
-#ifdef SLIM_ENABLE_CANVAS_TEXT_DRAWING
 INLINE void Canvas::drawText(char *str, i32 x, i32 y, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawText(str, x, y, *this, color, opacity, viewport_bounds);
 }
@@ -3434,8 +3372,6 @@ INLINE void Canvas::drawText(char *str, vec2 position, const Color &color, f32 o
     _drawText(str, (i32)position.x, (i32)position.y, *this, color, opacity, viewport_bounds);
 }
 #endif
-#endif
-
 
 INLINE void drawText(char *str, i32 x, i32 y, const Canvas &canvas, Color color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
     _drawText(str, x, y, canvas, color, opacity, viewport_bounds);
@@ -3457,8 +3393,6 @@ void _drawNumber(i32 number, i32 x, i32 y, const Canvas &canvas, const Color &co
     _drawText(number_string.string.char_ptr, x - (i32)number_string.string.length * FONT_WIDTH, y, canvas, color, opacity, viewport_bounds);
 }
 
-
-#ifdef SLIM_ENABLE_CANVAS_NUMBER_DRAWING
 INLINE void Canvas::drawNumber(i32 number, i32 x, i32 y, const Color &color, f32 opacity, const RectI *viewport_bounds) const {
     _drawNumber(number, x, y, *this, color, opacity, viewport_bounds);
 }
@@ -3471,8 +3405,6 @@ INLINE void Canvas::drawNumber(i32 number, vec2 position, const Color &color, f3
     _drawNumber(number, (i32)position.x, (i32)position.y, *this, color, opacity, viewport_bounds);
 }
 #endif
-#endif
-
 
 INLINE void drawNumber(i32 number, i32 x, i32 y, const Canvas &canvas, const Color &color = White, f32 opacity = 1.0f, const RectI *viewport_bounds = nullptr) {
     _drawNumber(number, x, y, canvas, color, opacity, viewport_bounds);
@@ -3487,7 +3419,7 @@ INLINE void drawNumber(i32 number, vec2 position, const Canvas &canvas, const Co
 }
 #endif
 
-void _drawHUD(const HUD &hud, const Canvas &canvas, const RectI *viewport_bounds) {
+void drawHUD(const HUD &hud, const Canvas &canvas, const RectI *viewport_bounds = nullptr) {
     i32 x = hud.left;
     i32 y = hud.top;
 
@@ -3507,16 +3439,6 @@ void _drawHUD(const HUD &hud, const Canvas &canvas, const RectI *viewport_bounds
         _drawText(text, x + (i32)line->title.length * FONT_WIDTH, y, canvas, color, 1.0f, viewport_bounds);
         y += (i32)(hud.settings.line_height * (f32)FONT_HEIGHT);
     }
-}
-
-#ifdef SLIM_ENABLE_CANVAS_HUD_DRAWING
-INLINE void Canvas::drawHUD(const HUD &hud, const RectI *viewport_bounds) const {
-    _drawHUD(hud, *this, viewport_bounds);
-}
-#endif
-
-INLINE void drawHUD(const HUD &hud, const Canvas &canvas, const RectI *viewport_bounds = nullptr) {
-    _drawHUD(hud, canvas, viewport_bounds);
 }
 
 
