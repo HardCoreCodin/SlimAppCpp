@@ -31,7 +31,7 @@ project(9_game)
 add_executable(9_game WIN32 src/examples/9_game.cpp)
 
 project(paint)
-add_executable(paint WIN32 src/examples/paint.cpp)
+add_executable(paint WIN32 src/examples/painting.cpp)
 
 project(viz)
 add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)

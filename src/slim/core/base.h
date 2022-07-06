@@ -60,7 +60,7 @@ typedef float  f32;
 typedef double f64;
 
 #ifndef CANVAS_COUNT
-#define CANVAS_COUNT 2
+#define CANVAS_COUNT 4
 #endif
 
 #define FONT_WIDTH 9
