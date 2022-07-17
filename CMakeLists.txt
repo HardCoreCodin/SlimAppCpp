@@ -30,8 +30,14 @@ add_executable(8_keyboard WIN32 src/examples/8_keyboard.cpp)
 project(9_game)
 add_executable(9_game WIN32 src/examples/9_game.cpp)
 
-project(paint)
-add_executable(paint WIN32 src/examples/painting.cpp)
+project(painting)
+add_executable(painting WIN32 src/examples/painting.cpp)
 
 project(viz)
 add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)
+
+project(bmp2texture)
+add_executable(bmp2texture WIN32 src/bmp2texture.cpp)
+
+project(DungeonCrawler)
+add_executable(DungeonCrawler WIN32 src/examples/DungeonCrawler.cpp)

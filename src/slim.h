@@ -283,6 +283,7 @@ struct Color {
         struct { f32 r  , g    , b   ; };
     };
 
+    Color(f32 value) : red{value}, green{value}, blue{value} {}
     Color(f32 red = 0.0f, f32 green = 0.0f, f32 blue = 0.0f) : red{red}, green{green}, blue{blue} {}
     Color(enum ColorID color_id) : Color{} {
         switch (color_id) {
@@ -383,6 +384,16 @@ struct Color {
                 green = 0.75f;
                 break;
         }
+    }
+
+    INLINE Color& operator = (f32 value) {
+        r = g = b = value;
+        return *this;
+    }
+
+    INLINE Color& operator = (ColorID color_id) {
+        *this  = Color(color_id);
+        return *this;
     }
 
     INLINE Color operator + (const Color &rhs) const {
@@ -640,7 +651,7 @@ namespace controls {
 }
 
 namespace os {
-    void* getMemory(u64 size);
+    void* getMemory(u64 size, u64 base = Terabytes(2));
     void setWindowTitle(char* str);
     void setWindowCapture(bool on);
     void setCursorVisibility(bool on);
@@ -793,18 +804,6 @@ namespace mouse {
     }
 }
 
-namespace os {
-    void* getMemory(u64 size);
-    void setWindowTitle(char* str);
-    void setWindowCapture(bool on);
-    void setCursorVisibility(bool on);
-    void closeFile(void *handle);
-    void* openFileForReading(const char* file_path);
-    void* openFileForWriting(const char* file_path);
-    bool readFromFile(void *out, unsigned long, void *handle);
-    bool writeToFile(void *out, unsigned long, void *handle);
-}
-
 namespace memory {
     u8 *canvas_memory{nullptr};
     u64 canvas_memory_capacity = CANVAS_SIZE * CANVAS_COUNT;
@@ -818,9 +817,9 @@ namespace memory {
 
         MonotonicAllocator() = default;
 
-        explicit MonotonicAllocator(u64 Capacity) {
+        explicit MonotonicAllocator(u64 Capacity, u64 starting = Terabytes(2)) {
             capacity = Capacity;
-            address = (u8*)os::getMemory(Capacity);
+            address = (u8*)os::getMemory(Capacity, starting);
         }
 
         void* allocate(u64 size) {
@@ -1010,6 +1009,226 @@ struct NumberString {
         if (is_negative) string.length++;
 
         return *this;
+    }
+};
+
+
+struct TexelQuadComponent {
+    u8 TL, TR, BL, BR;
+};
+
+struct TexelQuad {
+    TexelQuadComponent R, G, B;
+};
+
+struct TextureMip {
+    u16 width, height;
+    TexelQuad *texel_quads;
+
+    INLINE Pixel sample(f32 u, f32 v) const {
+        if (u > 1) u -= (f32)((u32)u);
+        if (v > 1) v -= (f32)((u32)v);
+
+        const f32 U = u * (f32)width  + 0.5f;
+        const f32 V = v * (f32)height + 0.5f;
+        const u32 x = (u32)U;
+        const u32 y = (u32)V;
+        const f32 r = U - (f32)x;
+        const f32 b = V - (f32)y;
+        const f32 l = 1 - r;
+        const f32 t = 1 - b;
+        const f32 tl = t * l * COLOR_COMPONENT_TO_FLOAT;
+        const f32 tr = t * r * COLOR_COMPONENT_TO_FLOAT;
+        const f32 bl = b * l * COLOR_COMPONENT_TO_FLOAT;
+        const f32 br = b * r * COLOR_COMPONENT_TO_FLOAT;
+
+        const TexelQuad texel_quad = texel_quads[y * (width + 1) + x];
+        return {
+                fast_mul_add((f32)texel_quad.R.BR, br, fast_mul_add((f32)texel_quad.R.BL, bl, fast_mul_add((f32)texel_quad.R.TR, tr, (f32)texel_quad.R.TL * tl))),
+                fast_mul_add((f32)texel_quad.G.BR, br, fast_mul_add((f32)texel_quad.G.BL, bl, fast_mul_add((f32)texel_quad.G.TR, tr, (f32)texel_quad.G.TL * tl))),
+                fast_mul_add((f32)texel_quad.B.BR, br, fast_mul_add((f32)texel_quad.B.BL, bl, fast_mul_add((f32)texel_quad.B.TR, tr, (f32)texel_quad.B.TL * tl))),
+                1.0f
+        };
+    }
+};
+
+struct Texture {
+    u16 width, height;
+    u8 mip_count;
+    bool wrap, mipmap;
+    TextureMip *mips;
+
+    static u8 GetMipLevel(f32 texel_area, u8 mip_count) {
+        u8 mip_level = 0;
+        while (texel_area > 1 && ++mip_level < mip_count) texel_area *= 0.25f;
+        if (mip_level >= mip_count)
+            mip_level = mip_count - 1;
+
+        return mip_level;
+    }
+
+    static u8 GetMipLevel(u16 width, u16 height, u8 mip_count, f32 uv_area) {
+        return GetMipLevel(uv_area * (f32)(width * height), mip_count);
+    }
+
+    static u8 GetMipLevel(const Texture &texture, f32 uv_area) {
+        return GetMipLevel(uv_area * (f32)(texture.width * texture.height), texture.mip_count);
+    }
+
+    INLINE Pixel sample(f32 u, f32 v, f32 uv_area) const {
+        return mips[mipmap ? GetMipLevel(uv_area * (f32)(width * height), mip_count) : 0].sample(u, v);
+    }
+};
+
+
+u32 getSizeInBytes(const Texture &texture) {
+    u16 mip_width  = texture.width;
+    u16 mip_height = texture.height;
+
+    u32 memory_size = 0;
+
+    do {
+        memory_size += sizeof(TextureMip);
+        memory_size += (mip_width + 1) * (mip_height + 1) * sizeof(TexelQuad);
+
+        mip_width /= 2;
+        mip_height /= 2;
+    } while (texture.mipmap && mip_width > 2 && mip_height > 2);
+
+    return memory_size;
+}
+
+bool allocateMemory(Texture &texture, memory::MonotonicAllocator *memory_allocator) {
+    if (getSizeInBytes(texture) > (memory_allocator->capacity - memory_allocator->occupied)) return false;
+    texture.mips = (TextureMip*)memory_allocator->allocate(sizeof(TextureMip) * texture.mip_count);
+    TextureMip *texture_mip = texture.mips;
+    u16 mip_width  = texture.width;
+    u16 mip_height = texture.height;
+
+    do {
+        texture_mip->texel_quads = (TexelQuad * )memory_allocator->allocate(sizeof(TexelQuad ) * (mip_height + 1) * (mip_width + 1));
+        mip_width /= 2;
+        mip_height /= 2;
+        texture_mip++;
+    } while (texture.mipmap && mip_width > 2 && mip_height > 2);
+
+    return true;
+}
+
+void writeHeader(const Texture &texture, void *file) {
+    os::writeToFile((void*)&texture.width,  sizeof(u16),  file);
+    os::writeToFile((void*)&texture.height, sizeof(u16),  file);
+    os::writeToFile((void*)&texture.mipmap, sizeof(bool), file);
+    os::writeToFile((void*)&texture.wrap,   sizeof(bool), file);
+    os::writeToFile((void*)&texture.mip_count, sizeof(u8), file);
+}
+void readHeader(Texture &texture, void *file) {
+    os::readFromFile(&texture.width,  sizeof(u16),  file);
+    os::readFromFile(&texture.height, sizeof(u16),  file);
+    os::readFromFile(&texture.mipmap, sizeof(bool), file);
+    os::readFromFile(&texture.wrap,   sizeof(bool), file);
+    os::readFromFile(&texture.mip_count, sizeof(u8), file);
+}
+
+bool saveHeader(const Texture &texture, char *file_path) {
+    void *file = os::openFileForWriting(file_path);
+    if (!file) return false;
+    writeHeader(texture, file);
+    os::closeFile(file);
+    return true;
+}
+
+bool loadHeader(Texture &texture, char *file_path) {
+    void *file = os::openFileForReading(file_path);
+    if (!file) return false;
+    readHeader(texture, file);
+    os::closeFile(file);
+    return true;
+}
+
+void readContent(Texture &texture, void *file) {
+    TextureMip *texture_mip = texture.mips;
+    for (u8 mip_index = 0; mip_index < texture.mip_count; mip_index++, texture_mip++) {
+        os::readFromFile(&texture_mip->width,  sizeof(u16), file);
+        os::readFromFile(&texture_mip->height, sizeof(u16), file);
+        os::readFromFile(texture_mip->texel_quads, sizeof(TexelQuad) * (texture_mip->width + 1) * (texture_mip->height + 1), file);
+    }
+}
+void writeContent(const Texture &texture, void *file) {
+    TextureMip *texture_mip = texture.mips;
+    for (u8 mip_index = 0; mip_index < texture.mip_count; mip_index++, texture_mip++) {
+        os::writeToFile(&texture_mip->width,  sizeof(u16), file);
+        os::writeToFile(&texture_mip->height, sizeof(u16), file);
+        os::writeToFile(texture_mip->texel_quads, sizeof(TexelQuad) * (texture_mip->width + 1) * (texture_mip->height + 1), file);
+    }
+}
+
+bool saveContent(const Texture &texture, char *file_path) {
+    void *file = os::openFileForWriting(file_path);
+    if (!file) return false;
+    writeContent(texture, file);
+    os::closeFile(file);
+    return true;
+}
+
+bool loadContent(Texture &texture, char *file_path) {
+    void *file = os::openFileForReading(file_path);
+    if (!file) return false;
+    readContent(texture, file);
+    os::closeFile(file);
+    return true;
+}
+
+bool save(const Texture &texture, char* file_path) {
+    void *file = os::openFileForWriting(file_path);
+    if (!file) return false;
+    writeHeader(texture, file);
+    writeContent(texture, file);
+    os::closeFile(file);
+    return true;
+}
+
+bool load(Texture &texture, char *file_path, memory::MonotonicAllocator *memory_allocator = nullptr) {
+    void *file = os::openFileForReading(file_path);
+    if (!file) return false;
+
+    if (memory_allocator) {
+        new(&texture) Texture{};
+        readHeader(texture, file);
+        if (!allocateMemory(texture, memory_allocator)) return false;
+    } else if (!texture.mips) return false;
+    readContent(texture, file);
+    os::closeFile(file);
+    return true;
+}
+
+u32 getTotalMemoryForTextures(String *texture_files, u32 texture_count) {
+    u32 memory_size{0};
+    for (u32 i = 0; i < texture_count; i++) {
+        Texture texture;
+        loadHeader(texture, texture_files[i].char_ptr);
+        memory_size += getSizeInBytes(texture);
+    }
+    return memory_size;
+}
+
+struct TexturePack {
+    TexturePack(u8 count, Texture *textures, char **files, char* adjacent_file, u64 memory_base = Terabytes(3)) {
+        char string_buffer[200];
+        u32 memory_size{0};
+        Texture *texture = textures;
+        for (u32 i = 0; i < count; i++, texture++) {
+            String string = String::getFilePath(files[i], string_buffer, adjacent_file);
+            loadHeader(*texture, string.char_ptr);
+            memory_size += getSizeInBytes(*texture);
+        }
+        memory::MonotonicAllocator memory_allocator{memory_size, memory_base};
+
+        texture = textures;
+        for (u32 i = 0; i < count; i++, texture++) {
+            String string = String::getFilePath(files[i], string_buffer, adjacent_file);
+            load(*texture, string.char_ptr, &memory_allocator);
+        }
     }
 };
 
@@ -2330,6 +2549,52 @@ private:
     }
 };
 
+void drawTextureMip(const TextureMip &texture_mip, const Canvas &canvas, const RectI draw_bounds, bool cropped = true, f32 opacity = 1.0f) {
+    Color texel_color;
+    i32 draw_width = draw_bounds.right - draw_bounds.left;
+    i32 draw_height = draw_bounds.bottom - draw_bounds.top;
+    if (cropped) {
+        if (draw_width > texture_mip.width) draw_width = texture_mip.width;
+        if (draw_height > texture_mip.height) draw_height = texture_mip.height;
+        i32 remainder_x = 1 + texture_mip.width - draw_width;
+        TexelQuad *texel_quad = texture_mip.texel_quads;
+        i32 Y = draw_bounds.top;
+        for (i32 y = 0; y < draw_height; y++, Y++) {
+            i32 X = draw_bounds.left;
+            for (i32 x = 0; x < draw_width; x++, X++, texel_quad++) {
+                texel_color.r = (float)texel_quad->R.BR * COLOR_COMPONENT_TO_FLOAT;
+                texel_color.g = (float)texel_quad->G.BR * COLOR_COMPONENT_TO_FLOAT;
+                texel_color.b = (float)texel_quad->B.BR * COLOR_COMPONENT_TO_FLOAT;
+                canvas.setPixel(X, Y, texel_color, opacity);
+            }
+            texel_quad += remainder_x;
+        }
+    } else {
+        float u_step = 1.0f / (float)draw_width;
+        float v_step = 1.0f / (float)draw_height;
+        float v = v_step * 0.5f;
+        i32 Y = draw_bounds.top;
+        for (i32 y = 0; y < draw_height; y++, Y++, v += v_step) {
+            i32 X = draw_bounds.left;
+            float u = u_step * 0.5f;
+            for (i32 x = 0; x < draw_width; x++, X++, u += u_step) {
+                texel_color = texture_mip.sample(u, v).color;
+                canvas.setPixel(X, Y, texel_color, opacity);
+            }
+        }
+    }
+}
+
+void drawTexture(const Texture &texture, const Canvas &canvas, const RectI draw_bounds, bool cropped = true, f32 opacity = 1.0f) {
+    u8 mip_level = 0;
+    if (!cropped) {
+        i32 draw_width = draw_bounds.right - draw_bounds.left;
+        i32 draw_height = draw_bounds.bottom - draw_bounds.top;
+        float texel_area = (float)(texture.width * texture.height) / (float)(draw_width * draw_height);
+        mip_level = Texture::GetMipLevel(texel_area, texture.mip_count);
+    }
+    drawTextureMip(texture.mips[mip_level], canvas, draw_bounds, cropped, opacity);
+}
 
 void _drawHLine(RangeI x_range, i32 y, const Canvas &canvas, const Color &color, f32 opacity, const RectI *viewport_bounds) {
     RangeI y_range{0, canvas.dimensions.height - 1};
@@ -3537,6 +3802,73 @@ void DisplayError(LPTSTR lpszFunction) {
 }
 #endif
 
+void win32_closeFile(void *handle) {
+    CloseHandle(handle);
+}
+
+void* win32_openFileForReading(const char* path) {
+    HANDLE handle = CreateFileA(path,           // file to open
+                                GENERIC_READ,          // open for reading
+                                FILE_SHARE_READ,       // share for reading
+                                nullptr,                  // default security
+                                OPEN_EXISTING,         // existing file only
+                                FILE_ATTRIBUTE_NORMAL, // normal file
+                                nullptr);                 // no attr. template
+#ifndef NDEBUG
+    if (handle == INVALID_HANDLE_VALUE) {
+        DisplayError((LPTSTR)"CreateFile");
+        _tprintf((LPTSTR)"Terminal failure: unable to open file \"%s\" for read.\n", path);
+        return nullptr;
+    }
+#endif
+    return handle;
+}
+
+void* win32_openFileForWriting(const char* path) {
+    HANDLE handle = CreateFileA(path,           // file to open
+                                GENERIC_WRITE,          // open for writing
+                                0,                      // do not share
+                                nullptr,                   // default security
+                                OPEN_ALWAYS,            // create new or open existing
+                                FILE_ATTRIBUTE_NORMAL,  // normal file
+                                nullptr);
+#ifndef NDEBUG
+    if (handle == INVALID_HANDLE_VALUE) {
+        DisplayError((LPTSTR)"CreateFile");
+        _tprintf((LPTSTR)"Terminal failure: unable to open file \"%s\" for write.\n", path);
+        return nullptr;
+    }
+#endif
+    return handle;
+}
+
+bool win32_readFromFile(LPVOID out, DWORD size, HANDLE handle) {
+    DWORD bytes_read = 0;
+    BOOL result = ReadFile(handle, out, size, &bytes_read, nullptr);
+#ifndef NDEBUG
+    if (result == FALSE) {
+        DisplayError((LPTSTR)"ReadFile");
+        printf("Terminal failure: Unable to read from file.\n GetLastError=%08x\n", (unsigned int)GetLastError());
+        CloseHandle(handle);
+    }
+#endif
+    return result != FALSE;
+}
+
+bool win32_writeToFile(LPVOID out, DWORD size, HANDLE handle) {
+    DWORD bytes_written = 0;
+    BOOL result = WriteFile(handle, out, size, &bytes_written, nullptr);
+#ifndef NDEBUG
+    if (result == FALSE) {
+        DisplayError((LPTSTR)"WriteFile");
+        printf("Terminal failure: Unable to write from file.\n GetLastError=%08x\n", (unsigned int)GetLastError());
+        CloseHandle(handle);
+    }
+#endif
+    return result != FALSE;
+}
+
+
 #define GET_X_LPARAM(lp)                        ((int)(short)LOWORD(lp))
 #define GET_Y_LPARAM(lp)                        ((int)(short)HIWORD(lp))
 
@@ -3588,75 +3920,15 @@ u64 time::getTicks() {
     return (u64)performance_counter.QuadPart;
 }
 
-void* os::getMemory(u64 size) {
-    return VirtualAlloc((LPVOID)MEMORY_BASE, (SIZE_T)size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+void* os::getMemory(u64 size, u64 base) {
+    return VirtualAlloc((LPVOID)base, (SIZE_T)size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 }
 
-void os::closeFile(void *handle) {
-    CloseHandle(handle);
-}
-
-void* os::openFileForReading(const char* path) {
-    HANDLE handle = CreateFileA(path,           // file to open
-                                GENERIC_READ,          // open for reading
-                                FILE_SHARE_READ,       // share for reading
-                                nullptr,                  // default security
-                                OPEN_EXISTING,         // existing file only
-                                FILE_ATTRIBUTE_NORMAL, // normal file
-                                nullptr);                 // no attr. template
-#ifndef NDEBUG
-    if (handle == INVALID_HANDLE_VALUE) {
-        DisplayError((LPTSTR)"CreateFile");
-        _tprintf((LPTSTR)"Terminal failure: unable to open file \"%s\" for read.\n", path);
-        return nullptr;
-    }
-#endif
-    return handle;
-}
-
-void* os::openFileForWriting(const char* path) {
-    HANDLE handle = CreateFileA(path,           // file to open
-                                GENERIC_WRITE,          // open for writing
-                                0,                      // do not share
-                                nullptr,                   // default security
-                                OPEN_ALWAYS,            // create new or open existing
-                                FILE_ATTRIBUTE_NORMAL,  // normal file
-                                nullptr);
-#ifndef NDEBUG
-    if (handle == INVALID_HANDLE_VALUE) {
-        DisplayError((LPTSTR)"CreateFile");
-        _tprintf((LPTSTR)"Terminal failure: unable to open file \"%s\" for write.\n", path);
-        return nullptr;
-    }
-#endif
-    return handle;
-}
-
-bool os::readFromFile(LPVOID out, DWORD size, HANDLE handle) {
-    DWORD bytes_read = 0;
-    BOOL result = ReadFile(handle, out, size, &bytes_read, nullptr);
-#ifndef NDEBUG
-    if (result == FALSE) {
-        DisplayError((LPTSTR)"ReadFile");
-        printf("Terminal failure: Unable to read from file.\n GetLastError=%08x\n", (unsigned int)GetLastError());
-        CloseHandle(handle);
-    }
-#endif
-    return result != FALSE;
-}
-
-bool os::writeToFile(LPVOID out, DWORD size, HANDLE handle) {
-    DWORD bytes_written = 0;
-    BOOL result = WriteFile(handle, out, size, &bytes_written, nullptr);
-#ifndef NDEBUG
-    if (result == FALSE) {
-        DisplayError((LPTSTR)"WriteFile");
-        printf("Terminal failure: Unable to write from file.\n GetLastError=%08x\n", (unsigned int)GetLastError());
-        CloseHandle(handle);
-    }
-#endif
-    return result != FALSE;
-}
+void os::closeFile(void *handle) { return win32_closeFile(handle); }
+void* os::openFileForReading(const char* path) { return win32_openFileForReading(path); }
+void* os::openFileForWriting(const char* path) { return win32_openFileForWriting(path); }
+bool os::readFromFile(LPVOID out, DWORD size, HANDLE handle) { return win32_readFromFile(out, size, handle); }
+bool os::writeToFile(LPVOID out, DWORD size, HANDLE handle) { return win32_writeToFile(out, size, handle); }
 
 SlimApp *CURRENT_APP;
 
