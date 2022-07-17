@@ -40,6 +40,12 @@ void drawTextureMip(const TextureMip &texture_mip, const Canvas &canvas, const R
 }
 
 void drawTexture(const Texture &texture, const Canvas &canvas, const RectI draw_bounds, bool cropped = true, f32 opacity = 1.0f) {
+    if (draw_bounds.right < 0 ||
+        draw_bounds.bottom < 0 ||
+        draw_bounds.left >= canvas.dimensions.width ||
+        draw_bounds.top >= canvas.dimensions.height)
+        return;
+
     u8 mip_level = 0;
     if (!cropped) {
         i32 draw_width = draw_bounds.right - draw_bounds.left;
