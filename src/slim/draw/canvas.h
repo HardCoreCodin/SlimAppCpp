@@ -151,7 +151,8 @@ struct Canvas {
             return;
 
         opacity = clampedValue(opacity);
-        Pixel pixel{color * color, opacity};
+        Pixel pixel{color.clamped(), opacity};
+        pixel.color *= pixel.color;
         if (opacity != 1.0f)
             pixel.color *= pixel.opacity;
 

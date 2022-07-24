@@ -5,64 +5,71 @@
 // Or using the single-header file:
 #include "../slim.h"
 
-constexpr int row_count = 6;
-constexpr int column_count = 8;
-constexpr int tile_size = 64;
+constexpr int row_count = 20;
+constexpr int column_count = 40;
+constexpr int max_lights_count = 16;
 
 struct Tile { bool is_full = false; };
 static Tile invalid_tile;
-bool isValid(const Tile &tile) {
+bool isValid(const Tile& tile) {
     return &tile != &invalid_tile;
 }
 
+struct Light {
+    float pos_x, pos_y, intensity = 1.0f;
+};
+
 struct TileMap {
     Tile tiles[row_count][column_count];
-
-    float light_x, light_y;
-    float light_intensity = 1.0f;
+    Light lights[max_lights_count];
+    int lights_count = 0;
 
     char* floor_texture_file_name = (char*)"floor.texture";
     char* wall_texture_file_name = (char*)"wall.texture";
     Texture floor_texture;
     Texture wall_texture;
-    TexturePack texture_pack{2,
-                             &floor_texture,
-                             &floor_texture_file_name,
-                             (char*)__FILE__};
+    TexturePack texture_pack{ 2,
+                              &floor_texture,
+                              &floor_texture_file_name,
+                              (char*)__FILE__ };
 
-    float pan_x = 0, pan_y = 0, zoom_scale = 1.0f, zoom_amount = 1.0f, to_normalized = 1.0f / tile_size, to_pixel = tile_size;
+    float tiles_per_pixel = 0.1f, pixels_per_tile = 10.0f;
+    float pan_x = 0, pan_y = 0;
 
-    void zoom(float amount) {
-        float offset_x = toNormalizedX(mouse::pos_x);
-        float offset_y = toNormalizedY(mouse::pos_y);
+    void zoom(float by) {
+        float old_mouse_x_in_tile_space = tileOfPixelX(mouse::pos_x);
+        float old_mouse_y_in_tile_space = tileOfPixelY(mouse::pos_y);
 
-        zoom_amount += amount;
-        zoom_scale = zoom_amount > 1 ? zoom_amount : (zoom_amount < -1.0f ? (-1.0f / zoom_amount) : 1.0f);
-        to_pixel = zoom_scale * tile_size;
-        to_normalized = 1.0f / to_pixel;
+        pan_x *= tiles_per_pixel;
+        pan_y *= tiles_per_pixel;
 
-        float new_offset_x = toNormalizedX(mouse::pos_x);
-        float new_offset_y = toNormalizedY(mouse::pos_y);
+        pixels_per_tile += by;
+        if (pixels_per_tile < 1.0f) pixels_per_tile = 1.0f;
 
-        pan_x += new_offset_x - offset_x;
-        pan_y += new_offset_y - offset_y;
+        tiles_per_pixel = 1.0f / pixels_per_tile;
+
+        pan_x *= pixels_per_tile;
+        pan_y *= pixels_per_tile;
+
+        float new_mouse_x_in_tile_space = tileOfPixelX(mouse::pos_x);
+        float new_mouse_y_in_tile_space = tileOfPixelY(mouse::pos_y);
+        pan_x += pixels_per_tile * (float)(new_mouse_x_in_tile_space - old_mouse_x_in_tile_space);
+        pan_y += pixels_per_tile * (float)(new_mouse_y_in_tile_space - old_mouse_y_in_tile_space);
     }
 
     void pan(int dx, int dy) {
-        pan_x += (float)dx * to_normalized;
-        pan_y += (float)dy * to_normalized;
+        pan_x += (float)dx;
+        pan_y += (float)dy;
     }
 
-    int toTileX(int x) const { return (int)(toNormalizedX(x)); }
-    int toTileY(int y) const { return (int)(toNormalizedY(y)); }
-    float toNormalizedX(int x) const { return to_normalized * (float)x - pan_x; }
-    float toNormalizedY(int y) const { return to_normalized * (float)y - pan_y; }
-    int toPixelX(float x) const { return (int)((x + pan_x) * to_pixel); }
-    int toPixelY(float y) const { return (int)((y + pan_y) * to_pixel); }
+    float tileOfPixelX(int x) const { return tiles_per_pixel * ((float)x - pan_x); }
+    float tileOfPixelY(int y) const { return tiles_per_pixel * ((float)y - pan_y); }
+    int pixelOfTileX(float X) const { return (int)(X * pixels_per_tile + pan_x); }
+    int pixelOfTileY(float Y) const { return (int)(Y * pixels_per_tile + pan_y); }
 
-    Tile& atPixelCoord(int x, int y) {
-        int tile_x = toTileX(x);
-        int tile_y = toTileY(y);
+    Tile& tileAt(int x, int y) {
+        int tile_x = (int)tileOfPixelX(x);
+        int tile_y = (int)tileOfPixelY(y);
         if (tile_x < 0 || tile_x >= column_count ||
             tile_y < 0 || tile_y >= row_count)
             return invalid_tile;
@@ -70,73 +77,128 @@ struct TileMap {
             return tiles[tile_y][tile_x];
     }
 
-    void draw(const Canvas &canvas) {
+    void draw(const Canvas& canvas) {
         for (int y = 0; y < row_count; y++)
             for (int x = 0; x < column_count; x++)
                 drawTexture(tiles[y][x].is_full ? wall_texture : floor_texture, canvas, RectI{
-                    toPixelX((float)x),
-                    toPixelX((float)(x + 1)),
-                    toPixelY((float)y),
-                    toPixelY((float)(y + 1))
-                    }, false);
+                        pixelOfTileX((float)x),
+                        pixelOfTileX((float)(x + 1)),
+                        pixelOfTileY((float)y),
+                        pixelOfTileY((float)(y + 1))
+                }, false);
 
-        Pixel *pixel = canvas.pixels;
+        Pixel* pixel = canvas.pixels;
         for (int y = 0; y < canvas.dimensions.height; y++) {
             for (int x = 0; x < canvas.dimensions.width; x++, pixel++) {
-                Tile &tile = atPixelCoord(x, y);
+                Tile& tile = tileAt(x, y);
                 if (&tile == &invalid_tile)
                     continue;
 
-                if (tile.is_full) {
-                    pixel->color /= 2;
+                if (tile.is_full || lights_count == 0)
                     continue;
+
+                float light = 0;
+                for (int l = 0; l < lights_count; l++) {
+                    float dx = lights[l].pos_x - tileOfPixelX(x);
+                    float dy = lights[l].pos_y - tileOfPixelY(y);
+                    float light_attenuation = dx * dx + dy * dy;
+                    light += lights[l].intensity / light_attenuation;
                 }
-
-                float dx = light_x - toNormalizedX(x);
-                float dy = light_y - toNormalizedY(y);
-                float light_attenuation = dx*dx + dy*dy;
-
-                pixel->color *= light_intensity / light_attenuation;
+                pixel->color = (pixel->color * light).clamped();
             }
         }
+
+        if (controls::is_pressed::ctrl)
+            canvas.drawRect(RectI{
+                    pixelOfTileX((float)((int)tileOfPixelX(mouse::pos_x))),
+                    pixelOfTileX((float)((int)tileOfPixelX(mouse::pos_x) + 1)),
+                    pixelOfTileY((float)((int)tileOfPixelY(mouse::pos_y))),
+                    pixelOfTileY((float)((int)tileOfPixelY(mouse::pos_y) + 1))
+            }, Magenta);
     }
 };
+
+void applyRetroShader(const Canvas &canvas, bool use_gameboy_colors, int down_scale = 4) {
+    float down_scale_factor = 1.0f / (float)(down_scale * down_scale);
+    int down_scaled_width = canvas.dimensions.width / down_scale;
+    int down_scaled_height = canvas.dimensions.height / down_scale;
+    for (int y = 0; y < down_scaled_height; y++) {
+        for (int x = 0; x < down_scaled_width; x++) {
+            // Pixelated (down-scale): Average out a square of pixels
+            Color color;
+            for (int v = 0; v < down_scale; v++)
+                for (int u = 0; u < down_scale; u++)
+                    color += canvas.pixels[canvas.dimensions.width * (y*down_scale + v) + x*down_scale + u].color;
+            color *= down_scale_factor;
+
+            if (use_gameboy_colors) {
+                int luminance = 16 + ( // Y of YCrCb (modulated)
+                    (((int)(color.r * ( 65.738f * 2.5f)))) +
+                    (((int)(color.g * (129.057f * 2.5f)))) +
+                    (((int)(color.b * ( 25.064f * 2.5f))))
+                );
+                switch (luminance >> 6) { // Choose a GameBoy color based on luminance:
+                    case 0:  color.setByHex(0x0F380F); break;
+                    case 1:  color.setByHex(0x306130); break;
+                    case 2:  color.setByHex(0x8AAB0F); break;
+                    default: color.setByHex(0xBBCF5D);
+                }
+            } else { // Reduce bit-depth to 5 bits for red/blue and 6 bits for green:
+                color.r = (float)((int)(color.r * (1 << 5))) / (1 << 5);
+                color.g = (float)((int)(color.g * (1 << 6))) / (1 << 6);
+                color.b = (float)((int)(color.b * (1 << 5))) / (1 << 5);
+            }
+
+            //  Pixelated (re-up-scale): Set the whole square of pixels to the new color
+            for (int v = 0; v < down_scale; v++)
+                for (int u = 0; u < down_scale; u++)
+                    canvas.pixels[canvas.dimensions.width * (y*down_scale + v) + x*down_scale + u].color = color;
+        }
+    }
+}
 
 struct DungeonCrawler : SlimApp {
     Canvas canvas;
     TileMap tile_map;
 
+    void OnMouseButtonDown(mouse::Button& mouse_button) override {
+        if (&mouse_button == &mouse::left_button && controls::is_pressed::alt)
+            tile_map.lights_count++;
+    }
+
     void OnUpdate(f32 delta_time) override {
         if (mouse::wheel_scrolled) {
-            float delta = mouse::wheel_scroll_amount * 0.01f;
-            if (controls::is_pressed::ctrl)
-                tile_map.light_intensity += delta;
-            else
-                tile_map.zoom(delta);
+            if (mouse::left_button.is_pressed && controls::is_pressed::alt) {
+                float new_intensity = tile_map.lights[tile_map.lights_count - 1].intensity + mouse::wheel_scroll_amount * 0.005f;
+                tile_map.lights[tile_map.lights_count - 1].intensity = new_intensity > 0.1f ? new_intensity : 0.1f;
+            } else
+                tile_map.zoom(mouse::wheel_scroll_amount * 0.05f);
         }
         if (mouse::moved) {
-            tile_map.light_x = tile_map.toNormalizedX(mouse::pos_x);
-            tile_map.light_y = tile_map.toNormalizedY(mouse::pos_y);
+            if (mouse::left_button.is_pressed && controls::is_pressed::alt) {
+                tile_map.lights[tile_map.lights_count - 1].pos_x = tile_map.tileOfPixelX(mouse::pos_x);
+                tile_map.lights[tile_map.lights_count - 1].pos_y = tile_map.tileOfPixelY(mouse::pos_y);
+            }
 
-            if (mouse::right_button.is_pressed)
+            if (mouse::right_button.is_pressed && !controls::is_pressed::ctrl)
                 tile_map.pan(mouse::movement_x, mouse::movement_y);
         }
 
-        if (mouse::left_button.is_pressed) {
-            Tile &tile_under_mouse = tile_map.atPixelCoord(mouse::pos_x, mouse::pos_y);
+        if (controls::is_pressed::ctrl && (mouse::left_button.is_pressed || mouse::right_button.is_pressed)) {
+            Tile& tile_under_mouse = tile_map.tileAt(mouse::pos_x, mouse::pos_y);
             if (isValid(tile_under_mouse))
-                tile_under_mouse.is_full = !controls::is_pressed::ctrl;
+                tile_under_mouse.is_full = mouse::left_button.is_pressed;
         }
     }
 
+    bool Retro = false;
+    bool GameBoy = false;
+    int down_scale = 4;
+
     void OnRender() override {
         canvas.clear();
-
         tile_map.draw(canvas);
-//        for (int y = 0; y <= row_count; y++) canvas.drawHLine(0, tile_size * column_count, y * tile_size);
-//        for (int x = 0; x <= column_count; x++) canvas.drawVLine(0, tile_size * row_count, x * tile_size);
-//        drawRay();
-
+        if (Retro) applyRetroShader(canvas, GameBoy, down_scale);
         canvas.drawToWindow();
     }
 
@@ -144,177 +206,13 @@ struct DungeonCrawler : SlimApp {
         canvas.dimensions.update(width, height);
     }
 
-    void OnKeyChanged(u8 key, bool is_pressed) override {
-
+    void OnKeyChanged(u8 key, bool pressed) override {
+        if (!pressed) {
+            if (key == controls::key_map::tab) Retro = !Retro;
+            if (key == '1') GameBoy = !GameBoy;
+            if (key == '2') down_scale = down_scale == 4 ? 8 : 4;
+        }
     }
-
-//    bool isTileFull(int tile_x, int tile_y) {
-//        return (tile_x >= 0 && tile_x < column_count &&
-//                tile_y >= 0 && tile_y < row_count &&
-//                !map[tile_y][tile_x].is_full);
-//    }
-//
-//    bool hitSomething(float src_x, float src_y, float trg_x, float trg_y, int &hit_tile_x, int &hit_tile_y, float &hit_x, float &hit_y) {
-//        if (src_x < 0 || src_y < 0 || trg_x < 0 || trg_y < 0 ||
-//            src_x >= column_count || trg_x >= column_count || src_y >= row_count || trg_y >= row_count)
-//            return false;
-//
-//        hit_tile_x = (int)src_x;
-//        hit_tile_y = (int)src_y;
-//        if (map[hit_tile_y][hit_tile_x].is_full) {
-//            hit_x = src_x;
-//            hit_y = src_y;
-//            return true;
-//        }
-//
-//        bool aiming_right = src_x < trg_x;
-//        bool aiming_down  = src_y < trg_y;
-//        bool aiming_left = trg_x < src_x;
-//        bool aiming_up   = trg_y < src_y;
-//        bool vertical   = src_x == trg_x;
-//        bool horizontal = src_y == trg_y;
-//
-//        float total_dx = trg_x - src_x;
-//        float total_dy = trg_y - src_y;
-//        float dy_per_x = total_dy / total_dx;
-//        float dx_per_y = total_dx / total_dy;
-//        int tile_inc_x = vertical ? 0 : (aiming_right ? 1 : -1);
-//        int tile_inc_y = horizontal ? 0 : (aiming_down ? 1 : -1);
-//
-//        float start_x = src_x;
-//        float start_y = src_y;
-//
-//        bool diagonal = !vertical && !horizontal;
-//        if (diagonal) {
-//            float x = (float)hit_tile_x;
-//            float y = (float)hit_tile_y;
-//            float dx = src_x - x;
-//            float dy = src_y - y;
-//
-//            if (aiming_left)
-//                start_y += dy_per_x * (1.0f - dx);
-//            else
-//                start_y -= dy_per_x * dx;
-//
-//            if (aiming_up) dy -= 1.0f;
-//            start_x -= dx_per_y * dy;
-//        }
-//
-//        int horizontal_hit_tile_x = (int)start_x;
-//        int horizontal_hit_tile_y = (int)start_y;
-//        float horizontal_hit_x = start_x;
-//        float horizontal_hit_y = start_y;
-//
-//        bool horizontal_hit = false;
-//        while (!horizontal_hit) {
-//            horizontal_hit_tile_x += tile_inc_x;
-//            if (horizontal_hit_tile_x < 0 ||
-//                horizontal_hit_tile_x >= column_count)
-//                break;
-//
-//            horizontal_hit_x += (float)tile_inc_x;
-//            if (!horizontal)
-//                horizontal_hit_y += dy_per_x;
-//            horizontal_hit_tile_y = (int)horizontal_hit_y;
-//            if (horizontal_hit_tile_y < 0 ||
-//                horizontal_hit_tile_y >= row_count)
-//                break;
-//
-//            horizontal_hit = map[horizontal_hit_tile_y][horizontal_hit_tile_x].is_full;
-//        }
-//
-//        int vertical_hit_tile_x = (int)start_x;
-//        int vertical_hit_tile_y = (int)start_y;
-//        float vertical_hit_x = start_x;
-//        float vertical_hit_y = start_y;
-//
-//        bool vertical_hit = false;
-//        while (!vertical_hit) {
-//            vertical_hit_tile_y += tile_inc_y;
-//            if (vertical_hit_tile_y < 0 ||
-//                vertical_hit_tile_y >= row_count)
-//                break;
-//
-//            vertical_hit_y += (float)tile_inc_y;
-//            if (!vertical)
-//                vertical_hit_x += dx_per_y;
-//            vertical_hit_tile_x = (int)vertical_hit_x;
-//            if (vertical_hit_tile_x < 0 ||
-//                vertical_hit_tile_x >= column_count)
-//                break;
-//
-//            vertical_hit = map[vertical_hit_tile_y][vertical_hit_tile_x].is_full;
-//        }
-//
-//        if (!vertical_hit && !horizontal_hit)
-//            return false;
-//
-//        if (vertical_hit && horizontal_hit) {
-//            float vertical_hit_dx = vertical_hit_x - src_x;
-//            float vertical_hit_dy = vertical_hit_y - src_y;
-//            float vertical_hit_distance_squared = vertical_hit_dx * vertical_hit_dx + vertical_hit_dy * vertical_hit_dy;
-//
-//            float horizontal_hit_dx = horizontal_hit_x - src_x;
-//            float horizontal_hit_dy = horizontal_hit_y - src_y;
-//            float horizontal_hit_distance_squared = horizontal_hit_dx * horizontal_hit_dx + horizontal_hit_dy * horizontal_hit_dy;
-//
-//            if (vertical_hit_distance_squared < horizontal_hit_distance_squared) {
-//                hit_tile_x = vertical_hit_tile_x;
-//                hit_tile_y = vertical_hit_tile_y;
-//                hit_x = vertical_hit_x;
-//                hit_y = vertical_hit_y;
-//            } else {
-//                hit_tile_x = horizontal_hit_tile_x;
-//                hit_tile_y = horizontal_hit_tile_y;
-//                hit_x = horizontal_hit_x;
-//                hit_y = horizontal_hit_y;
-//            }
-//        } else if (vertical_hit) {
-//            hit_tile_x = vertical_hit_tile_x;
-//            hit_tile_y = vertical_hit_tile_y;
-//            hit_x = vertical_hit_x;
-//            hit_y = vertical_hit_y;
-//        } else {
-//            hit_tile_x = horizontal_hit_tile_x;
-//            hit_tile_y = horizontal_hit_tile_y;
-//            hit_x = horizontal_hit_x;
-//            hit_y = horizontal_hit_y;
-//        }
-//
-//        return true;
-//    }
-//
-//    void drawRay() {
-//        float x = 75;
-//        float y = 55;
-//        float x2 = (float)mouse::pos_x;
-//        float y2 = (float)mouse::pos_y;
-//
-//        float trg_x =  x / tile_size;
-//        float trg_y =  y / tile_size;
-//        float src_x = mouse_x;
-//        float src_y = mouse_y;
-//
-//        int hit_tile_x;
-//        int hit_tile_y;
-//        float hit_x;
-//        float hit_y;
-//        bool hit = hitSomething(src_x, src_y, trg_x, trg_y, hit_tile_x, hit_tile_y, hit_x, hit_y);
-//        if (hit) {
-//            x2 = hit_x * tile_size;
-//            y2 = hit_y * tile_size;
-//
-//            canvas.drawRect(RectI{
-//                    hit_tile_x * tile_size,
-//                    (hit_tile_x + 1) * tile_size,
-//                    hit_tile_y * tile_size,
-//                    (hit_tile_y + 1) * tile_size,
-//            }, Magenta);
-//        }
-//
-//        canvas.drawLine(x, y, x2, y2, Yellow);
-//    }
-
 };
 
 SlimApp* createApp() {

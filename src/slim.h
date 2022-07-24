@@ -386,6 +386,20 @@ struct Color {
         }
     }
 
+    INLINE Color clamped() const {
+        return {
+                clampedValue(r),
+                clampedValue(g),
+                clampedValue(b)
+        };
+    }
+
+    INLINE  void setByHex(i32 hex) {
+        r = (float)((0xFF0000 & hex) >> 16) * COLOR_COMPONENT_TO_FLOAT;
+        g = (float)((0x00FF00 & hex) >>  8) * COLOR_COMPONENT_TO_FLOAT;
+        b = (float)( 0x0000FF & hex)        * COLOR_COMPONENT_TO_FLOAT;
+    }
+
     INLINE Color& operator = (f32 value) {
         r = g = b = value;
         return *this;
@@ -2417,7 +2431,8 @@ struct Canvas {
             return;
 
         opacity = clampedValue(opacity);
-        Pixel pixel{color * color, opacity};
+        Pixel pixel{color.clamped(), opacity};
+        pixel.color *= pixel.color;
         if (opacity != 1.0f)
             pixel.color *= pixel.opacity;
 
