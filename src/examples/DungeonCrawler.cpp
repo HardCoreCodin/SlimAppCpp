@@ -10,13 +10,10 @@ constexpr int column_count = 40;
 constexpr int max_lights_count = 16;
 
 struct Tile { bool is_full = false; };
-static Tile invalid_tile;
-bool isValid(const Tile& tile) {
-    return &tile != &invalid_tile;
-}
 
 struct Light {
     float pos_x, pos_y, intensity = 1.0f;
+    Color color = White;
 };
 
 struct TileMap {
@@ -67,14 +64,52 @@ struct TileMap {
     int pixelOfTileX(float X) const { return (int)(X * pixels_per_tile + pan_x); }
     int pixelOfTileY(float Y) const { return (int)(Y * pixels_per_tile + pan_y); }
 
-    Tile& tileAt(int x, int y) {
-        int tile_x = (int)tileOfPixelX(x);
-        int tile_y = (int)tileOfPixelY(y);
-        if (tile_x < 0 || tile_x >= column_count ||
-            tile_y < 0 || tile_y >= row_count)
-            return invalid_tile;
-        else
-            return tiles[tile_y][tile_x];
+    bool isOutOfBounds(float X, float Y) { return X < 0 || X >= column_count || Y < 0 || Y >= row_count; }
+
+    bool isInShadow(float X, float Y, float lightX, float lightY) {
+        float dX = lightX - X;
+        float dY = lightY - Y;
+        bool aiming_right = dX > 0;
+        bool aiming_down = dY > 0;
+
+        RectI bounds;
+        if (aiming_right) {
+            bounds.left = (int)X;
+            bounds.right = (int)lightX;
+        } else {
+            bounds.left = (int)lightX;
+            bounds.right = (int)X;
+        }
+        if (aiming_down) {
+            bounds.top = (int)Y;
+            bounds.bottom = (int)lightY;
+        } else {
+            bounds.top = (int)lightY;
+            bounds.bottom = (int)Y;
+        }
+
+        for (int y = bounds.top; y <= bounds.bottom; y++) {
+            float top = (float)y;
+            float bottom = (float)(y + 1);
+            float boundY = aiming_down ? top : bottom;
+            for (int x = bounds.left; x <= bounds.right; x++) {
+                if (tiles[y][x].is_full) {
+                    float left = (float)x;
+                    float right = (float)(x + 1);
+                    float boundX = aiming_right ? left : right;
+
+                    float hitY = Y + dY * ((boundX - X) / dX);
+                    if (hitY >= top && hitY <= bottom)
+                        return true;
+
+                    float hitX = X + dX * ((boundY - Y) / dY);
+                    if (hitX >= left && hitX <= right)
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     void draw(const Canvas& canvas) {
@@ -87,24 +122,30 @@ struct TileMap {
                         pixelOfTileY((float)(y + 1))
                 }, false);
 
-        Pixel* pixel = canvas.pixels;
-        for (int y = 0; y < canvas.dimensions.height; y++) {
-            for (int x = 0; x < canvas.dimensions.width; x++, pixel++) {
-                Tile& tile = tileAt(x, y);
-                if (&tile == &invalid_tile)
-                    continue;
+        if (lights_count) {
+            Pixel* pixel = canvas.pixels;
+            Color accumulated_light;
+            for (int y = 0; y < canvas.dimensions.height; y++) {
+                for (int x = 0; x < canvas.dimensions.width; x++, pixel++) {
+                    float X = tileOfPixelX(x);
+                    float Y = tileOfPixelY(y);
+                    if (isOutOfBounds(X, Y) || tiles[(int)Y][(int)X].is_full)
+                        continue;
 
-                if (tile.is_full || lights_count == 0)
-                    continue;
+                    accumulated_light = Black;
+                    for (int l = 0; l < lights_count; l++) {
+                        float lightX = lights[l].pos_x;
+                        float lightY = lights[l].pos_y;
 
-                float light = 0;
-                for (int l = 0; l < lights_count; l++) {
-                    float dx = lights[l].pos_x - tileOfPixelX(x);
-                    float dy = lights[l].pos_y - tileOfPixelY(y);
-                    float light_attenuation = dx * dx + dy * dy;
-                    light += lights[l].intensity / light_attenuation;
+                        if (isInShadow(X, Y, lightX, lightY))
+                            continue;
+
+                        float dx = X - lightX;
+                        float dy = Y - lightY;
+                        accumulated_light += lights[l].color * (lights[l].intensity / (dx*dx + dy*dy));
+                    }
+                    pixel->color = (pixel->color * accumulated_light).clamped();
                 }
-                pixel->color = (pixel->color * light).clamped();
             }
         }
 
@@ -185,9 +226,10 @@ struct DungeonCrawler : SlimApp {
         }
 
         if (controls::is_pressed::ctrl && (mouse::left_button.is_pressed || mouse::right_button.is_pressed)) {
-            Tile& tile_under_mouse = tile_map.tileAt(mouse::pos_x, mouse::pos_y);
-            if (isValid(tile_under_mouse))
-                tile_under_mouse.is_full = mouse::left_button.is_pressed;
+            float X = tile_map.tileOfPixelX(mouse::pos_x);
+            float Y = tile_map.tileOfPixelY(mouse::pos_y);
+            if (!tile_map.isOutOfBounds(X, Y))
+                tile_map.tiles[(int)Y][(int)X].is_full = mouse::left_button.is_pressed;
         }
     }
 
