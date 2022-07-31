@@ -212,6 +212,7 @@ struct TileMap {
         if (lights_count) {
             Pixel* pixel = canvas.pixels;
             Color accumulated_light;
+            const float light_point_contribution = 1.0f / (float)circle::semicircle_point_count;
             for (int y = 0; y < canvas.dimensions.height; y++) {
                 for (int x = 0; x < canvas.dimensions.width; x++, pixel++) {
                     float X = tileOfPixelX(x);
@@ -225,26 +226,37 @@ struct TileMap {
                         if (light->point_intensity == 0.0f)
                             continue;
 
-                        float radius = light->intensity * 0.1f;
-                        float squared_radius = radius * radius;
-
                         float dX = light->pos_x - X;
                         float dY = light->pos_y - Y;
-                        int start_point_index = (int)((float)circle::point_count * (circle::getCircleFraction(dX, dY) + 0.25f)) + 1;
-                        int end_point_index = start_point_index + circle::semicircle_point_count;
-                        for (int p = start_point_index; p < end_point_index; p++) {
-                            int i = p % circle::point_count;
-                            float lightPointX = light->pos_x + circle::points[i].X * radius;
-                            float lightPointY = light->pos_y + circle::points[i].Y * radius;
+                        float squared_distance = dX*dX + dY*dY;
 
-                            dX = lightPointX - X;
-                            dY = lightPointY - Y;
-
-                            float squared_distance = dX*dX + dY*dY;
-                            if (squared_distance > squared_radius && isInShadow(X, Y, lightPointX, lightPointY, dX, dY))
+                        if (circle::semicircle_point_count == 1) {
+                            if (isInShadow(X, Y, light->pos_x, light->pos_y, dX, dY))
                                 continue;
 
-                            accumulated_light += lights[l].color * (light->point_intensity / squared_distance);
+                            accumulated_light += light->color * (light->intensity / squared_distance);
+                        } else {
+                            float radius = light->intensity * 0.1f;
+                            float squared_radius = radius * radius;
+
+                            float acculumlated_light_points_contribution = 0;
+                            int start_point_index = (int)((float)circle::point_count * (circle::getCircleFraction(dX, dY) + 0.25f)) + 1;
+                            int end_point_index = start_point_index + circle::semicircle_point_count;
+                            for (int p = start_point_index; p < end_point_index; p++) {
+                                int i = p % circle::point_count;
+                                float lightPointX = light->pos_x + circle::points[i].X * radius;
+                                float lightPointY = light->pos_y + circle::points[i].Y * radius;
+
+                                dX = lightPointX - X;
+                                dY = lightPointY - Y;
+
+                                if (squared_distance > squared_radius && isInShadow(X, Y, lightPointX, lightPointY, dX, dY))
+                                    continue;
+
+                                acculumlated_light_points_contribution += light_point_contribution;
+                            }
+                            acculumlated_light_points_contribution *= acculumlated_light_points_contribution;
+                            accumulated_light += light->color * (light->intensity * acculumlated_light_points_contribution / squared_distance);
                         }
                     }
                     pixel->color = (pixel->color * accumulated_light).clamped();
@@ -260,23 +272,45 @@ struct TileMap {
                     pixelOfTileY((float)((int)tileOfPixelY(mouse::pos_y) + 1))
             }, Magenta);
 
-//        if (lights_count) {
-//            Light &light = lights[0];
-//            float X = tileOfPixelX(mouse::pos_x);
-//            float Y = tileOfPixelY(mouse::pos_y);
-//            float dX = light.pos_x - X;
-//            float dY = light.pos_y - Y;
-//            float radius = light.intensity * 0.1f;
-//
-//            int start_point_index = (int)((float)circle::point_count * (circle::getCircleFraction(dX, dY) + 0.25f)) + 1;
-//            int end_point_index = start_point_index + circle::semicircle_point_count;
-//            for (int p = start_point_index; p < end_point_index; p++) {
-//                int i = p % circle::point_count;
-//                float lightPointX = light.pos_x + circle::points[i].X * radius;
-//                float lightPointY = light.pos_y + circle::points[i].Y * radius;
-//                canvas.fillCircle(pixelOfTileX(lightPointX), pixelOfTileY(lightPointY), pixels_per_tile * radius * 0.5f, Red);
-//            }
-//        }
+        if (false) {
+            Light *light = lights;
+            float X = tileOfPixelX(mouse::pos_x);
+            float Y = tileOfPixelY(mouse::pos_y);
+
+            for (int i = 0; i < lights_count; i++, light++) {
+                if (light->point_intensity == 0)
+                    continue;
+
+                float dX = light->pos_x - X;
+                float dY = light->pos_y - Y;
+                if (circle::semicircle_point_count == 1) {
+                    int x = pixelOfTileX(light->pos_x);
+                    int y = pixelOfTileY(light->pos_y);
+                    canvas.fillCircle(x, y, 3, Green);
+
+                    bool in_shadow = isInShadow(X, Y, light->pos_x, light->pos_y, dX, dY);
+                    canvas.drawLine((float)mouse::pos_x, (float)mouse::pos_y, (float)x, (float)y,
+                                    Color{in_shadow ? DarkRed : BrightYellow}, 1, 3);
+                } else {
+                    float radius = light->intensity * 0.2f;
+
+                    int start_point_index = (int)((float)circle::point_count * (circle::getCircleFraction(dX, dY) + 0.25f)) + 1;
+                    int end_point_index = start_point_index + circle::semicircle_point_count;
+                    for (int p = start_point_index; p < end_point_index; p++) {
+                        int i = p % circle::point_count;
+                        float lightPointX = light->pos_x + circle::points[i].X * radius;
+                        float lightPointY = light->pos_y + circle::points[i].Y * radius;
+                        int x = pixelOfTileX(lightPointX);
+                        int y = pixelOfTileY(lightPointY);
+                        canvas.fillCircle(x, y, 3, Green);
+
+                        bool in_shadow = isInShadow(X, Y, lightPointX, lightPointY, lightPointX - X, lightPointY - Y);
+                        canvas.drawLine((float)mouse::pos_x, (float)mouse::pos_y, (float)x, (float)y,
+                                        Color{in_shadow ? DarkRed : BrightYellow}, 1, 3);
+                    }
+                }
+            }
+        }
     }
 };
 
@@ -344,15 +378,7 @@ struct DungeonCrawler : SlimApp {
         Light *light = user_is_adding_a_light ? &tile_map.lights[tile_map.lights_count - 1] : nullptr;
 
         if (mouse::wheel_scrolled) {
-            if (controls::is_pressed::shift && controls::is_pressed::ctrl) {
-                shadow_softness += (int)(mouse::wheel_scroll_amount * 0.01f);
-                if (shadow_softness < 1)
-                    shadow_softness = 1;
-                if (shadow_softness > 5)
-                    shadow_softness = 5;
-                circle::setPoints(1 << shadow_softness);
-                tile_map.updateLightIntensities();
-            } else if (light) {
+            if (light) {
                 if (controls::is_pressed::shift) {
                     light_color_index += (int)(mouse::wheel_scroll_amount * 0.01f);
                     if (light_color_index < 0)
@@ -403,6 +429,18 @@ struct DungeonCrawler : SlimApp {
             if (key == controls::key_map::tab) Retro = !Retro;
             if (key == '1') GameBoy = !GameBoy;
             if (key == '2') down_scale = down_scale == 4 ? 8 : 4;
+            if (key == '3' || key == '4') {
+                if (key == '3')
+                    shadow_softness--;
+                else
+                    shadow_softness++;
+                if (shadow_softness < 1)
+                    shadow_softness = 1;
+                if (shadow_softness > 5)
+                    shadow_softness = 5;
+                circle::setPoints(1 << shadow_softness);
+                tile_map.updateLightIntensities();
+            }
         }
     }
 };
