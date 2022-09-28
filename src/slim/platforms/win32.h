@@ -1,10 +1,10 @@
 #include "./win32_base.h"
+#include "../app.h"
 
 #define GET_X_LPARAM(lp)                        ((int)(short)LOWORD(lp))
 #define GET_Y_LPARAM(lp)                        ((int)(short)HIWORD(lp))
 
 WNDCLASSA window_class;
-HWND window_handle;
 HDC win_dc;
 BITMAPINFO info;
 RECT win_rect;
@@ -30,36 +30,7 @@ inline bool hasRawMouseInput(LPARAM lParam) {
     );
 }
 
-LARGE_INTEGER performance_counter;
 
-void os::setWindowTitle(char* str) {
-    window::title = str;
-    SetWindowTextA(window_handle, str);
-}
-
-void os::setCursorVisibility(bool on) {
-    ShowCursor(on);
-}
-
-void os::setWindowCapture(bool on) {
-    if (on) SetCapture(window_handle);
-    else ReleaseCapture();
-}
-
-u64 time::getTicks() {
-    QueryPerformanceCounter(&performance_counter);
-    return (u64)performance_counter.QuadPart;
-}
-
-void* os::getMemory(u64 size, u64 base) {
-    return VirtualAlloc((LPVOID)base, (SIZE_T)size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-}
-
-void os::closeFile(void *handle) { return win32_closeFile(handle); }
-void* os::openFileForReading(const char* path) { return win32_openFileForReading(path); }
-void* os::openFileForWriting(const char* path) { return win32_openFileForWriting(path); }
-bool os::readFromFile(LPVOID out, DWORD size, HANDLE handle) { return win32_readFromFile(out, size, handle); }
-bool os::writeToFile(LPVOID out, DWORD size, HANDLE handle) { return win32_writeToFile(out, size, handle); }
 
 SlimApp *CURRENT_APP;
 
@@ -215,11 +186,11 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     LARGE_INTEGER performance_frequency;
     QueryPerformanceFrequency(&performance_frequency);
 
-    time::ticks_per_second = (u64)performance_frequency.QuadPart;
-    time::seconds_per_tick = 1.0 / (f64)(time::ticks_per_second);
-    time::milliseconds_per_tick = 1000.0 * time::seconds_per_tick;
-    time::microseconds_per_tick = 1000.0 * time::milliseconds_per_tick;
-    time::nanoseconds_per_tick  = 1000.0 * time::microseconds_per_tick;
+    timers::ticks_per_second = (u64)performance_frequency.QuadPart;
+    timers::seconds_per_tick = 1.0 / (f64)(timers::ticks_per_second);
+    timers::milliseconds_per_tick = 1000.0 * timers::seconds_per_tick;
+    timers::microseconds_per_tick = 1000.0 * timers::milliseconds_per_tick;
+    timers::nanoseconds_per_tick  = 1000.0 * timers::microseconds_per_tick;
 
     CURRENT_APP = createApp();
     if (!CURRENT_APP->is_running)

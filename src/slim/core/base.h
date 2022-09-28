@@ -3,51 +3,101 @@
 #include <cmath>
 
 #if defined(__clang__)
-#define COMPILER_CLANG 1
-#define COMPILER_CLANG_OR_GCC 1
+    #define COMPILER_CLANG 1
+    #define COMPILER_CLANG_OR_GCC 1
 #elif defined(__GNUC__) || defined(__GNUG__)
-#define COMPILER_GCC 1
+    #define COMPILER_GCC 1
     #define COMPILER_CLANG_OR_GCC 1
 #elif defined(_MSC_VER)
     #define COMPILER_MSVC 1
 #endif
 
-#if (defined(SLIMMER) || !defined(NDEBUG))
-#define INLINE
-#elif defined(COMPILER_MSVC)
-#define INLINE inline __forceinline
-#elif defined(COMPILER_CLANG_OR_GCC)
-    #define INLINE inline __attribute__((always_inline))
+#ifdef __CUDACC__
+    #ifndef NDEBUG
+        #include <stdio.h>
+        #include <stdlib.h>
+        inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+            if (code != cudaSuccess) {
+                fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code) , file, line);
+                if (abort) exit(code);
+            }
+        }
+        #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+        #ifndef XPU
+            #define XPU __device__ __host__
+        #endif
+        #ifndef INLINE_XPU
+            #define INLINE_XPU __device__ __host__
+        #endif
+        #ifndef INLINE
+            #define INLINE
+        #endif
+    #else
+        #ifndef XPU
+            #define XPU __device__ __host__
+        #endif
+        #ifndef INLINE_XPU
+            #define INLINE_XPU __device__ __host__ __forceinline__
+        #endif
+        #ifndef INLINE
+            #define INLINE __forceinline__
+        #endif
+        #define gpuErrchk(ans) (ans);
+    #endif
+
+    #define checkErrors() gpuErrchk(cudaPeekAtLastError())
+    #define uploadNto(cpu_ptr, gpu_ptr, N, offset) gpuErrchk(cudaMemcpy(&((gpu_ptr)[(offset)]), (cpu_ptr), sizeof((cpu_ptr)[0]) * (N), cudaMemcpyHostToDevice))
+    #define uploadN(  cpu_ptr, gpu_ptr, N        ) gpuErrchk(cudaMemcpy(&((gpu_ptr)[0])       , (cpu_ptr), sizeof((cpu_ptr)[0]) * (N), cudaMemcpyHostToDevice))
+    #define downloadN(gpu_ptr, cpu_ptr, N)         gpuErrchk(cudaMemcpy((cpu_ptr), &((gpu_ptr)[0])       , sizeof((cpu_ptr)[0]) * (N), cudaMemcpyDeviceToHost))
+    #define downloadNto(gpu_ptr,cpu_ptr,N, offset) gpuErrchk(cudaMemcpy((cpu_ptr), &((gpu_ptr)[(offset)]), sizeof((cpu_ptr)[0]) * (N), cudaMemcpyDeviceToHost))
 #else
-    #define INLINE inline
+    #ifndef XPU
+        #define XPU
+    #endif
+    #ifndef INLINE
+        #if (defined(SLIMMER) || !defined(NDEBUG))
+            #define INLINE
+        #elif defined(COMPILER_MSVC)
+            #define INLINE inline __forceinline
+        #elif defined(COMPILER_CLANG_OR_GCC)
+            #define INLINE inline __attribute__((always_inline))
+        #else
+            #define INLINE inline
+        #endif
+    #endif
+    #ifndef INLINE_XPU
+        #define INLINE_XPU INLINE
+    #endif
+#endif
+
+#if defined(COMPILER_CLANG)
+    #define likely(x)   __builtin_expect(x, true)
+    #define unlikely(x) __builtin_expect_with_probability(x, false, 0.95)
+#else
+    #define likely(x)   x
+    #define unlikely(x) x
 #endif
 
 #ifdef COMPILER_CLANG
-#define ENABLE_FP_CONTRACT \
+    #define ENABLE_FP_CONTRACT \
         _Pragma("clang diagnostic push") \
         _Pragma("clang diagnostic ignored \"-Wunknown-pragmas\"") \
         _Pragma("STDC FP_CONTRACT ON") \
         _Pragma("clang diagnostic pop")
 #else
-#define ENABLE_FP_CONTRACT
+    #define ENABLE_FP_CONTRACT
 #endif
 
 #ifdef FP_FAST_FMAF
-#define fast_mul_add(a, b, c) fmaf(a, b, c)
+    #define fast_mul_add(a, b, c) fmaf(a, b, c)
 #else
-ENABLE_FP_CONTRACT
-#define fast_mul_add(a, b, c) ((a) * (b) + (c))
+    ENABLE_FP_CONTRACT
+    #define fast_mul_add(a, b, c) ((a) * (b) + (c))
 #endif
 
-#ifdef __cplusplus
-    #define null nullptr
-    #ifndef signbit
-        #define signbit std::signbit
-    #endif
-#else
-    #define null 0
-    typedef unsigned char      bool;
- #endif
+#ifndef signbit
+    #define signbit std::signbit
+#endif
 
 typedef unsigned char      u8;
 typedef unsigned short     u16;
@@ -60,7 +110,7 @@ typedef float  f32;
 typedef double f64;
 
 #ifndef CANVAS_COUNT
-#define CANVAS_COUNT 4
+#define CANVAS_COUNT 2
 #endif
 
 #define FONT_WIDTH 9
@@ -94,40 +144,40 @@ typedef double f64;
 #define fractionOf(x) ((x) - floorf(x))
 #define oneMinusFractionOf(x) (1 - fractionOf(x))
 
-INLINE f32 clampedValue(f32 value, f32 from, f32 to) {
+INLINE_XPU f32 clampedValue(f32 value, f32 from, f32 to) {
     f32 mn = value < to ? value : to;
     return mn > from ? mn : from;
 }
 
-INLINE i32 clampedValue(i32 value, i32 from, i32 to) {
+INLINE_XPU i32 clampedValue(i32 value, i32 from, i32 to) {
     i32 mn = value < to ? value : to;
     return mn > from ? mn : from;
 }
 
-INLINE f32 clampedValue(f32 value, f32 to) {
+INLINE_XPU f32 clampedValue(f32 value, f32 to) {
     return value < to ? value : to;
 }
 
-INLINE i32 clampedValue(i32 value, i32 to) {
+INLINE_XPU i32 clampedValue(i32 value, i32 to) {
     return value < to ? value : to;
 }
 
-INLINE f32 clampedValue(f32 value) {
+INLINE_XPU f32 clampedValue(f32 value) {
     f32 mn = value < 1.0f ? value : 1.0f;
     return mn > 0.0f ? mn : 0.0f;
 }
 
-INLINE i32 clampedValue(i32 value) {
+INLINE_XPU i32 clampedValue(i32 value) {
     i32 mn = value < 1 ? value : 1;
     return mn > 0 ? mn : 0;
 }
 
-INLINE f32 smoothStep(f32 from, f32 to, f32 t) {
+INLINE_XPU f32 smoothStep(f32 from, f32 to, f32 t) {
     t = (t - from) / (to - from);
     return t * t * (3.0f - 2.0f * t);
 }
 
-INLINE f32 approach(f32 src, f32 trg, f32 diff) {
+INLINE_XPU f32 approach(f32 src, f32 trg, f32 diff) {
     f32 out;
 
     out = src + diff; if (trg > out) return out;
@@ -281,9 +331,9 @@ struct Color {
         struct { f32 r  , g    , b   ; };
     };
 
-    Color(f32 value) : red{value}, green{value}, blue{value} {}
-    Color(f32 red = 0.0f, f32 green = 0.0f, f32 blue = 0.0f) : red{red}, green{green}, blue{blue} {}
-    Color(enum ColorID color_id) : Color{} {
+    INLINE_XPU Color(f32 value) : red{value}, green{value}, blue{value} {}
+    INLINE_XPU Color(f32 red = 0.0f, f32 green = 0.0f, f32 blue = 0.0f) : red{red}, green{green}, blue{blue} {}
+    INLINE_XPU Color(enum ColorID color_id) : Color{} {
         switch (color_id) {
             case Black: break;
             case White:
@@ -384,7 +434,7 @@ struct Color {
         }
     }
 
-    INLINE Color clamped() const {
+    INLINE_XPU Color clamped() const {
         return {
             clampedValue(r),
             clampedValue(g),
@@ -392,23 +442,23 @@ struct Color {
         };
     }
 
-    INLINE  void setByHex(i32 hex) {
+    INLINE_XPU  void setByHex(i32 hex) {
         r = (float)((0xFF0000 & hex) >> 16) * COLOR_COMPONENT_TO_FLOAT;
         g = (float)((0x00FF00 & hex) >>  8) * COLOR_COMPONENT_TO_FLOAT;
         b = (float)( 0x0000FF & hex)        * COLOR_COMPONENT_TO_FLOAT;
     }
 
-    INLINE Color& operator = (f32 value) {
+    INLINE_XPU Color& operator = (f32 value) {
         r = g = b = value;
         return *this;
     }
 
-    INLINE Color& operator = (ColorID color_id) {
+    INLINE_XPU Color& operator = (ColorID color_id) {
         *this  = Color(color_id);
         return *this;
     }
 
-    INLINE Color operator + (const Color &rhs) const {
+    INLINE_XPU Color operator + (const Color &rhs) const {
         return {
                 r + rhs.r,
                 g + rhs.g,
@@ -416,7 +466,7 @@ struct Color {
         };
     }
 
-    INLINE Color operator + (f32 scalar) const {
+    INLINE_XPU Color operator + (f32 scalar) const {
         return {
                 r + scalar,
                 g + scalar,
@@ -424,21 +474,21 @@ struct Color {
         };
     }
 
-    INLINE Color& operator += (const Color &rhs) {
+    INLINE_XPU Color& operator += (const Color &rhs) {
         r += rhs.r;
         g += rhs.g;
         b += rhs.b;
         return *this;
     }
 
-    INLINE Color& operator += (f32 scalar) {
+    INLINE_XPU Color& operator += (f32 scalar) {
         r += scalar;
         g += scalar;
         b += scalar;
         return *this;
     }
 
-    INLINE Color operator - (const Color &rhs) const {
+    INLINE_XPU Color operator - (const Color &rhs) const {
         return {
                 r - rhs.r,
                 g - rhs.g,
@@ -446,7 +496,7 @@ struct Color {
         };
     }
 
-    INLINE Color operator - (f32 scalar) const {
+    INLINE_XPU Color operator - (f32 scalar) const {
         return {
                 r - scalar,
                 g - scalar,
@@ -454,21 +504,21 @@ struct Color {
         };
     }
 
-    INLINE Color& operator -= (const Color &rhs) {
+    INLINE_XPU Color& operator -= (const Color &rhs) {
         r -= rhs.r;
         g -= rhs.g;
         b -= rhs.b;
         return *this;
     }
 
-    INLINE Color& operator -= (f32 scalar) {
+    INLINE_XPU Color& operator -= (f32 scalar) {
         r -= scalar;
         g -= scalar;
         b -= scalar;
         return *this;
     }
 
-    INLINE Color operator * (const Color &rhs) const {
+    INLINE_XPU Color operator * (const Color &rhs) const {
         return {
             r * rhs.r,
             g * rhs.g,
@@ -476,7 +526,7 @@ struct Color {
         };
     }
 
-    INLINE Color operator * (f32 scalar) const {
+    INLINE_XPU Color operator * (f32 scalar) const {
         return {
             r * scalar,
             g * scalar,
@@ -484,21 +534,21 @@ struct Color {
         };
     }
 
-    INLINE Color& operator *= (const Color &rhs) {
+    INLINE_XPU Color& operator *= (const Color &rhs) {
         r *= rhs.r;
         g *= rhs.g;
         b *= rhs.b;
         return *this;
     }
 
-    INLINE Color& operator *= (f32 scalar) {
+    INLINE_XPU Color& operator *= (f32 scalar) {
         r *= scalar;
         g *= scalar;
         b *= scalar;
         return *this;
     }
 
-    INLINE Color operator / (const Color &rhs) const {
+    INLINE_XPU Color operator / (const Color &rhs) const {
         return {
                 r / rhs.r,
                 g / rhs.g,
@@ -506,7 +556,7 @@ struct Color {
         };
     }
 
-    INLINE Color operator / (f32 scalar) const {
+    INLINE_XPU Color operator / (f32 scalar) const {
         scalar = 1.0f / scalar;
         return {
                 r * scalar,
@@ -515,14 +565,14 @@ struct Color {
         };
     }
 
-    INLINE Color& operator /= (const Color &rhs) {
+    INLINE_XPU Color& operator /= (const Color &rhs) {
         r /= rhs.r;
         g /= rhs.g;
         b /= rhs.b;
         return *this;
     }
 
-    INLINE Color& operator /= (f32 scalar) {
+    INLINE_XPU Color& operator /= (f32 scalar) {
         scalar = 1.0f / scalar;
         r *= scalar;
         g *= scalar;
@@ -530,11 +580,11 @@ struct Color {
         return *this;
     }
 
-    INLINE Color lerpTo(const Color &to, f32 by) const {
+    INLINE_XPU Color lerpTo(const Color &to, f32 by) const {
         return (to - *this).scaleAdd(by, *this);
     }
 
-    INLINE Color scaleAdd(f32 factor, const Color &to_be_added) const {
+    INLINE_XPU Color scaleAdd(f32 factor, const Color &to_be_added) const {
         return {
                 fast_mul_add(r, factor, to_be_added.r),
                 fast_mul_add(g, factor, to_be_added.g),
@@ -547,46 +597,58 @@ struct Pixel {
     Color color;
     f32 opacity;
 
-    Pixel(Color color, f32 opacity = 1.0f) : color{color}, opacity{opacity} {}
-    Pixel(f32 red = 0.0f, f32 green = 0.0f, f32 blue = 0.0f, f32 opacity = 0.0f) : color{red, green, blue}, opacity{opacity} {}
-    Pixel(enum ColorID color_id, f32 opacity = 1.0f) : Pixel{Color(color_id), opacity} {}
+    INLINE_XPU Pixel(Color color, f32 opacity = 1.0f) : color{color}, opacity{opacity} {}
+    INLINE_XPU Pixel(f32 red = 0.0f, f32 green = 0.0f, f32 blue = 0.0f, f32 opacity = 0.0f) : color{red, green, blue}, opacity{opacity} {}
+    INLINE_XPU Pixel(enum ColorID color_id, f32 opacity = 1.0f) : Pixel{Color(color_id), opacity} {}
 
-    INLINE Pixel operator * (f32 factor) const {
+    INLINE_XPU Pixel operator * (f32 factor) const {
         return {
             color * factor,
             opacity * factor
         };
     }
 
-    INLINE Pixel operator + (const Pixel &rhs) const {
+    INLINE_XPU Pixel operator + (const Pixel &rhs) const {
         return {
             color + rhs.color,
             opacity + rhs.opacity
         };
     }
 
-    INLINE Pixel& operator += (const Pixel &rhs) {
+    INLINE_XPU Pixel& operator += (const Pixel &rhs) {
         color += rhs.color;
         opacity += rhs.opacity;
         return *this;
     }
 
-    INLINE Pixel& operator *= (const Pixel &rhs) {
+    INLINE_XPU Pixel& operator *= (const Pixel &rhs) {
         color *= rhs.color;
         opacity *= rhs.opacity;
         return *this;
     }
 
-    INLINE Pixel alphaBlendOver(const Pixel &background) const {
+    INLINE_XPU Pixel alphaBlendOver(const Pixel &background) const {
         return *this + background * (1.0f - opacity);
     }
 
-    INLINE u32 asContent() const {
+    INLINE_XPU u32 asContent() const {
         u8 R = (u8)(color.r > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.r)));
         u8 G = (u8)(color.g > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.g)));
         u8 B = (u8)(color.b > 1.0f ? MAX_COLOR_VALUE : (FLOAT_TO_COLOR_COMPONENT * sqrt(color.b)));
         return R << 16 | G << 8 | B;
     }
+};
+
+struct ImageHeader {
+    u32 width = 0;
+    u32 height = 0;
+    u32 depth = 24;
+    f32 gamma = 2.2f;
+};
+
+struct Image : ImageHeader {
+    Pixel *pixels = nullptr;
+    Pixel* operator[] (int row) const { return pixels + row*width; }
 };
 
 #define PIXEL_SIZE (sizeof(Pixel))
@@ -663,7 +725,7 @@ namespace controls {
 }
 
 namespace os {
-    void* getMemory(u64 size, u64 base = Terabytes(2));
+    void* getMemory(u64 size, u64 base = 0);
     void setWindowTitle(char* str);
     void setWindowCapture(bool on);
     void setCursorVisibility(bool on);
@@ -674,7 +736,7 @@ namespace os {
     bool writeToFile(void *out, unsigned long, void *handle);
 }
 
-namespace time {
+namespace timers {
     u64 getTicks();
     u64 ticks_per_second;
     f64 seconds_per_tick;
@@ -705,7 +767,7 @@ namespace time {
         u16 average_microseconds_per_frame{0};
         u16 average_nanoseconds_per_frame{0};
 
-        Timer() noexcept : ticks_before{getTicks()}, ticks_of_last_report{getTicks()} {};
+        Timer() noexcept : ticks_before{getTicks()}, ticks_after{getTicks()}, ticks_of_last_report{getTicks()} {};
 
         INLINE void accumulate() {
             ticks_diff = ticks_after - ticks_before;
@@ -729,7 +791,6 @@ namespace time {
         }
 
         INLINE void beginFrame() {
-            ticks_after = ticks_before;
             ticks_before = getTicks();
             ticks_diff = ticks_before - ticks_after;
             delta_time = (f32) ((f64) ticks_diff * seconds_per_tick);
@@ -829,7 +890,7 @@ namespace memory {
 
         MonotonicAllocator() = default;
 
-        explicit MonotonicAllocator(u64 Capacity, u64 starting = Terabytes(2)) {
+        explicit MonotonicAllocator(u64 Capacity, u64 starting = 0) {
             capacity = Capacity;
             address = (u8*)os::getMemory(Capacity, starting);
         }

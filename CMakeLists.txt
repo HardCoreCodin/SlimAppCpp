@@ -37,7 +37,10 @@ project(viz)
 add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)
 
 project(bmp2texture)
-add_executable(bmp2texture WIN32 src/bmp2texture.cpp)
+add_executable(bmp2texture src/bmp2texture.cpp)
 
-project(DungeonCrawler)
-add_executable(DungeonCrawler WIN32 src/examples/DungeonCrawler.cpp)
+project(bmp2image)
+add_executable(bmp2image src/bmp2image.cpp)
+
+project(TileMap)
+add_executable(TileMap WIN32 src/examples/TileMap.cpp)
