@@ -38,22 +38,10 @@ bool allocateMemory(Texture &texture, memory::MonotonicAllocator *memory_allocat
 }
 
 void writeHeader(const TextureHeader &texture_header, void *file) {
-    os::writeToFile((void*)&texture_header.width,  sizeof(u32),  file);
-    os::writeToFile((void*)&texture_header.height, sizeof(u32),  file);
-    os::writeToFile((void*)&texture_header.depth,  sizeof(u32),  file);
-    os::writeToFile((void*)&texture_header.gamma,  sizeof(f32),  file);
-    os::writeToFile((void*)&texture_header.mip_count, sizeof(u16),  file);
-    os::writeToFile((void*)&texture_header.mipmap,    sizeof(bool),  file);
-    os::writeToFile((void*)&texture_header.wrap,      sizeof(bool),  file);
+    os::writeToFile((void*)&texture_header,  sizeof(TextureHeader),  file);
 }
 void readHeader(TextureHeader &texture_header, void *file) {
-    os::readFromFile(&texture_header.width,  sizeof(u32),  file);
-    os::readFromFile(&texture_header.height, sizeof(u32),  file);
-    os::readFromFile(&texture_header.depth,  sizeof(u32),  file);
-    os::readFromFile(&texture_header.gamma,  sizeof(f32),  file);
-    os::readFromFile(&texture_header.mip_count, sizeof(u16),  file);
-    os::readFromFile(&texture_header.mipmap,    sizeof(bool),  file);
-    os::readFromFile(&texture_header.wrap,      sizeof(bool),  file);
+    os::readFromFile(&texture_header,  sizeof(TextureHeader),  file);
 }
 
 bool saveHeader(const Texture &texture, char *file_path) {

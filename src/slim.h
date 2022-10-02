@@ -175,6 +175,8 @@ INLINE_XPU i32 clampedValue(i32 value) {
 }
 
 INLINE_XPU f32 smoothStep(f32 from, f32 to, f32 t) {
+    if (t <= from) return 0;
+    if (t >= to) return 1;
     t = (t - from) / (to - from);
     return t * t * (3.0f - 2.0f * t);
 }
@@ -1099,16 +1101,10 @@ bool allocateMemory(Image &image, memory::MonotonicAllocator *memory_allocator) 
 }
 
 void writeHeader(const ImageHeader &image_header, void *file) {
-    os::writeToFile((void*)&image_header.width,  sizeof(u32),  file);
-    os::writeToFile((void*)&image_header.height, sizeof(u32),  file);
-    os::writeToFile((void*)&image_header.depth,  sizeof(u32),  file);
-    os::writeToFile((void*)&image_header.gamma,  sizeof(f32),  file);
+    os::writeToFile((void*)&image_header,  sizeof(ImageHeader),  file);
 }
 void readHeader(ImageHeader &image_header, void *file) {
-    os::readFromFile(&image_header.width,  sizeof(u32),  file);
-    os::readFromFile(&image_header.height, sizeof(u32),  file);
-    os::readFromFile(&image_header.depth,  sizeof(u32),  file);
-    os::readFromFile(&image_header.gamma,  sizeof(f32),  file);
+    os::readFromFile(&image_header,  sizeof(ImageHeader),  file);
 }
 
 bool saveHeader(const Image &image, char *file_path) {
@@ -1308,22 +1304,10 @@ bool allocateMemory(Texture &texture, memory::MonotonicAllocator *memory_allocat
 }
 
 void writeHeader(const TextureHeader &texture_header, void *file) {
-    os::writeToFile((void*)&texture_header.width,  sizeof(u32),  file);
-    os::writeToFile((void*)&texture_header.height, sizeof(u32),  file);
-    os::writeToFile((void*)&texture_header.depth,  sizeof(u32),  file);
-    os::writeToFile((void*)&texture_header.gamma,  sizeof(f32),  file);
-    os::writeToFile((void*)&texture_header.mip_count, sizeof(u16),  file);
-    os::writeToFile((void*)&texture_header.mipmap,    sizeof(bool),  file);
-    os::writeToFile((void*)&texture_header.wrap,      sizeof(bool),  file);
+    os::writeToFile((void*)&texture_header,  sizeof(TextureHeader),  file);
 }
 void readHeader(TextureHeader &texture_header, void *file) {
-    os::readFromFile(&texture_header.width,  sizeof(u32),  file);
-    os::readFromFile(&texture_header.height, sizeof(u32),  file);
-    os::readFromFile(&texture_header.depth,  sizeof(u32),  file);
-    os::readFromFile(&texture_header.gamma,  sizeof(f32),  file);
-    os::readFromFile(&texture_header.mip_count, sizeof(u16),  file);
-    os::readFromFile(&texture_header.mipmap,    sizeof(bool),  file);
-    os::readFromFile(&texture_header.wrap,      sizeof(bool),  file);
+    os::readFromFile(&texture_header,  sizeof(TextureHeader),  file);
 }
 
 bool saveHeader(const Texture &texture, char *file_path) {

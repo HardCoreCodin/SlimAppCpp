@@ -33,6 +33,9 @@ add_executable(9_game WIN32 src/examples/9_game.cpp)
 project(painting)
 add_executable(painting WIN32 src/examples/painting.cpp)
 
+project(DisplacementPainter)
+add_executable(DisplacementPainter WIN32 src/examples/DisplacementPainter/app.cpp)
+
 project(viz)
 add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)
 

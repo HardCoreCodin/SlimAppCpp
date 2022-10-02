@@ -173,6 +173,8 @@ INLINE_XPU i32 clampedValue(i32 value) {
 }
 
 INLINE_XPU f32 smoothStep(f32 from, f32 to, f32 t) {
+    if (t <= from) return 0;
+    if (t >= to) return 1;
     t = (t - from) / (to - from);
     return t * t * (3.0f - 2.0f * t);
 }
