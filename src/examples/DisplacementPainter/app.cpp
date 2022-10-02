@@ -4,26 +4,12 @@ struct Brush {
     static constexpr i32 MAX_BRUSH_RADIUS = 60;
     static constexpr i32 MIN_BRUSH_RADIUS = 30;
 
-    Color color = White;
+    enum Param {Radius, InnerRadius, Opacity};
+
     f32 magnitudes[MAX_BRUSH_RADIUS*MAX_BRUSH_RADIUS*4];
     f32 opacity = 0.2f;
     i32 radius = MAX_BRUSH_RADIUS;
     i32 inner_radius = MIN_BRUSH_RADIUS;
-
-    void incrementRadiusBy(f32 by) {
-        radius = clampedValue((i32)by + radius, MAX_BRUSH_RADIUS);
-        update();
-    }
-
-    void incrementInnerRadiusBy(f32 by) {
-        inner_radius = clampedValue((i32)by + inner_radius, MAX_BRUSH_RADIUS);
-        update();
-    }
-
-    void incrementOpacityBy(f32 by) {
-        opacity = clampedValue(by + opacity);
-        update();
-    }
 
     void drawTo(const Canvas &canvas, const RectI &draw_bounds) {
         if (draw_bounds.right < 0 ||
@@ -38,7 +24,7 @@ struct Brush {
         if (draw_height > MAX_BRUSH_RADIUS*2) draw_height = MAX_BRUSH_RADIUS*2;
         for (i32 y = 0, Y = draw_bounds.top; y < draw_height; y++, Y++)
             for (i32 x = 0, X = draw_bounds.left; x < draw_width; x++, X++)
-                canvas.setPixel(X, Y, color, magnitudes[MAX_BRUSH_RADIUS * 2 * y + x]);
+                canvas.setPixel(X, Y, White, magnitudes[MAX_BRUSH_RADIUS * 2 * y + x]);
     }
 
     void update() {
@@ -52,9 +38,21 @@ struct Brush {
             }
         }
     }
+
+    void increment(Param param, f32 by) {
+        switch (param) {
+            case Param::Opacity: opacity = clampedValue(by + opacity); break;
+            case Param::Radius: radius = clampedValue((i32)by + radius, MAX_BRUSH_RADIUS); break;
+            case Param::InnerRadius: inner_radius = clampedValue((i32)by + inner_radius, MAX_BRUSH_RADIUS); break;
+        }
+        update();
+    }
 };
 
-struct HW1 : SlimApp {
+struct DisplacementPainter : SlimApp {
+    static constexpr f32 MouseBrushSensitivity = 0.05f;
+    static constexpr f32 BrushOpacitySensitivity = 0.01f;
+
     Canvas canvas;
     Brush brush;
 
@@ -109,14 +107,17 @@ struct HW1 : SlimApp {
 
     void OnUpdate(float delta_time) override {
         if (mouse::wheel_scrolled) {
-            f32 inc = mouse::wheel_scroll_amount * 0.05f;
-            if (controls::is_pressed::shift)
-                brush.incrementOpacityBy(inc * 0.01f);
-            else if (controls::is_pressed::alt)
-                brush.incrementInnerRadiusBy(inc);
-            else
-                brush.incrementRadiusBy(inc);
+            Brush::Param param = Brush::Param::Radius;
+            f32 by = mouse::wheel_scroll_amount * MouseBrushSensitivity;
+            if (controls::is_pressed::shift) {
+                by *= BrushOpacitySensitivity;
+                param = Brush::Param::Opacity;
+            } else if (controls::is_pressed::alt)
+                param = Brush::Param::InnerRadius;
+
+            brush.increment(param, by);
         }
+
         if ((controls::is_pressed::ctrl || mouse::moved) && mouse::left_button.is_pressed && image_bounds.contains(mouse::pos_x, mouse::pos_y)) {
             // Update displacement map using the brush and the mouse position and movement, then update current image:
             vec2 displacement_inc, old_displacement, new_displacement;
@@ -131,7 +132,7 @@ struct HW1 : SlimApp {
                     i32 brush_y = Brush::MAX_BRUSH_RADIUS + dy;
                     f32 magnitude = brush.magnitudes[Brush::MAX_BRUSH_RADIUS*2 * brush_y + brush_x];
                     if (controls::is_pressed::ctrl) {
-                        if (magnitude > 0.0f) {
+                        if (magnitude) {
                             i32 pixel_offset = (i32)image.width * y + x;
                             Pixel &target_pixel = current.pixels[pixel_offset];
                             vec2 &current_displacement = displacement_map[pixel_offset];
@@ -170,5 +171,5 @@ struct HW1 : SlimApp {
 };
 
 SlimApp* createApp() {
-    return new HW1();
+    return new DisplacementPainter();
 }
