@@ -256,7 +256,10 @@ struct RectOf {
 
     RectOf(const RectOf<T> &other) : RectOf{other.x_range, other.y_range} {}
     RectOf(const RangeOf<T> &x_range, const RangeOf<T> &y_range) : x_range{x_range}, y_range{y_range} {}
-    RectOf(T left = 0, T right = 0, T top = 0, T bottom = 0) : left{left}, right{right}, top{top}, bottom{bottom} {}
+    RectOf(T left = 0, T right = 0, T top = 0, T bottom = 0) : left{left}, right{right}, top{top}, bottom{bottom} {
+        if (right < left) swap(&right, &left);
+        if (bottom < top) swap(&top, &bottom);
+    }
 
     INLINE bool contains(T x, T y) const { return x_range.contains(x) && y_range.contains(y); }
     INLINE bool bounds(T x, T y) const { return x_range.bounds(x) && y_range.bounds(y); }

@@ -33,9 +33,6 @@ add_executable(9_game WIN32 src/examples/9_game.cpp)
 project(painting)
 add_executable(painting WIN32 src/examples/painting.cpp)
 
-project(DisplacementPainter)
-add_executable(DisplacementPainter WIN32 src/examples/DisplacementPainter/app.cpp)
-
 project(viz)
 add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)
 
@@ -47,3 +44,17 @@ add_executable(bmp2image src/bmp2image.cpp)
 
 project(TileMap)
 add_executable(TileMap WIN32 src/examples/TileMap.cpp)
+
+project(DisplacementPainter)
+add_executable(DisplacementPainter WIN32 src/examples/DisplacementPainter/app.cpp)
+
+# For CUDA compilation, uncomment the following lines as-needed
+set(CMAKE_CUDA_STANDARD 11)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES 52)
+endif()
+set(CUDA_VERBOSE_BUILD ON)
+
+project(DisplacementPainterXPU CUDA)
+add_executable(DisplacementPainterXPU WIN32 src/examples/DisplacementPainter/app.cu)
+set_target_properties(DisplacementPainterXPU PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
