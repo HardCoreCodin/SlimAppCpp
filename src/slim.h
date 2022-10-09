@@ -181,6 +181,10 @@ INLINE_XPU f32 smoothStep(f32 from, f32 to, f32 t) {
     return t * t * (3.0f - 2.0f * t);
 }
 
+INLINE_XPU f32 smoothStep(f32 t) {
+    return smoothStep(0.0f, 1.0f, t);
+}
+
 INLINE_XPU f32 approach(f32 src, f32 trg, f32 diff) {
     f32 out;
 

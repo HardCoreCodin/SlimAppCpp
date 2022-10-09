@@ -49,12 +49,76 @@ struct Brush {
     }
 };
 
+struct ParticleBrush {
+    static constexpr i32 MAX_RADIUS = 60;
+    static constexpr i32 MAX_PARTICLES = 8;
+
+    vec2 particle_positions[MAX_PARTICLES];
+    f32 radius = 60.0f;
+    f32 factor = 1.0f;
+    u8 active_particles = 1;
+
+    INLINE_XPU f32 sample(f32 distance) const {
+        return (1.0f - smoothStep(distance / radius)) * factor;
+    }
+
+    INLINE_XPU f32 sample(vec2 source, vec2 target) const {
+        return sample((target - source).length());
+    }
+
+    INLINE_XPU f32 sample(i32 particle_index, vec2 target) const {
+        return sample(particle_positions[particle_index], target);
+    }
+
+    void drawToWindow(RectI draw_bounds) {
+        if (draw_bounds.right < 0 ||
+            draw_bounds.bottom < 0 ||
+            draw_bounds.left >= window::width ||
+            draw_bounds.top >= window::height)
+            return;
+
+        draw_bounds.right = min(draw_bounds.right, window::width - 1);
+        draw_bounds.bottom = min(draw_bounds.bottom, window::height - 1);
+
+        i32 x, y;
+        vec2 v;
+        for (v.y = 0.5f - MAX_RADIUS, y = draw_bounds.top; y <= draw_bounds.bottom; y++, v.y += 1.0f) {
+            for (v.x = 0.5f - MAX_RADIUS, x = draw_bounds.left; x <= draw_bounds.right; x++, v.x += 1.0f) {
+                u8 A = (u8)(FLOAT_TO_COLOR_COMPONENT * sample(v.length()));
+                window::content[window::width * y + x] = A << 16 | A << 8 | A;
+            }
+        }
+    }
+
+    void drawToCanvas(const Canvas &canvas, vec2i at, const Color &color) {
+        vec2 brush_start{0.5f - radius};
+        RectI bounds;
+        bounds.left = bounds.top = -(i32)radius;
+        bounds.right = bounds.bottom = (i32)radius - 1;
+        bounds.x_range += at.x;
+        bounds.y_range += at.y;
+        if (bounds.x_range.first < 0) brush_start.x -= (f32)bounds.x_range.first;
+        if (bounds.y_range.first < 0) brush_start.y -= (f32)bounds.y_range.first;
+
+        bounds -= RectI{0, canvas.dimensions.width, 0, canvas.dimensions.height};
+        if (!bounds) return;
+
+        i32 x, y;
+        vec2 v;
+        for (v.y = brush_start.y, y = bounds.top; y <= bounds.bottom; y++, v.y += 1.0f)
+            for (v.x = brush_start.x, x = bounds.left; x <= bounds.right; x++, v.x += 1.0f)
+                canvas.setPixel(x, y, color, sample(v.length()));
+    }
+};
+
+
 struct DisplacementPainter : SlimApp {
     static constexpr f32 MouseBrushSensitivity = 0.05f;
     static constexpr f32 BrushOpacitySensitivity = 0.01f;
 
     Canvas canvas;
-    Brush brush;
+//    Brush brush;
+    ParticleBrush particle_brush;
 
     char *files[2]{(char*)"input.image", (char*)"input.image"};
     Image image, current;
@@ -64,7 +128,7 @@ struct DisplacementPainter : SlimApp {
 
     void OnWindowResize(u16 width, u16 height) override {
         canvas.dimensions.update(width, height);
-        brush.update();
+//        brush.update();
     }
 
     void OnRender() override {
@@ -89,83 +153,92 @@ struct DisplacementPainter : SlimApp {
                 }
             }
 
-        i32 brush_size = Brush::MAX_BRUSH_RADIUS * 2;
-        RectI draw_bounds;
-        draw_bounds.bottom = brush_size;
-        draw_bounds.left = (i32)image.width;
-        draw_bounds.right = (i32)image.width + brush_size;
-        brush.drawTo(canvas, draw_bounds);
-
         if (image_bounds.contains(mouse::pos_x, mouse::pos_y)) {
             Color color = controls::is_pressed::ctrl ? Green : Red;
-            canvas.drawCircle(mouse::pos_x, mouse::pos_y, brush.radius, color, brush.opacity);
-            canvas.drawCircle(mouse::pos_x, mouse::pos_y, brush.inner_radius, color, brush.opacity);
+            if (mouse::left_button.is_pressed)
+                canvas.drawCircle(mouse::pos_x, mouse::pos_y, (i32)particle_brush.radius, color);
+            else
+                particle_brush.drawToCanvas(canvas, {mouse::pos_x, mouse::pos_y}, color);
+//            canvas.drawCircle(mouse::pos_x, mouse::pos_y, brush.radius, color, brush.opacity);
+//            canvas.drawCircle(mouse::pos_x, mouse::pos_y, brush.inner_radius, color, brush.opacity);
         }
 
         canvas.drawToWindow();
+
+        RectI draw_bounds;
+        draw_bounds.left = (i32)image.width;
+        draw_bounds.bottom = Brush::MAX_BRUSH_RADIUS * 2;
+        draw_bounds.right = draw_bounds.left + draw_bounds.bottom;
+        particle_brush.drawToWindow(draw_bounds);
     }
 
     void OnUpdate(float delta_time) override {
         if (mouse::wheel_scrolled) {
-            Brush::Param param = Brush::Param::Radius;
+//            Brush::Param param = Brush::Param::Radius;
             f32 by = mouse::wheel_scroll_amount * MouseBrushSensitivity;
             if (controls::is_pressed::shift) {
                 by *= BrushOpacitySensitivity;
-                param = Brush::Param::Opacity;
-            } else if (controls::is_pressed::alt)
-                param = Brush::Param::InnerRadius;
-
-            brush.increment(param, by);
+//                param = Brush::Param::Opacity;
+                particle_brush.factor =  clampedValue(by +particle_brush.factor);
+            }
+//            else if (controls::is_pressed::alt)
+//                param = Brush::Param::InnerRadius;
+            else
+                particle_brush.radius = clampedValue(by + particle_brush.radius, (f32)ParticleBrush::MAX_RADIUS);
+//            brush.increment(param, by);
         }
 
         if ((controls::is_pressed::ctrl || mouse::moved) && mouse::left_button.is_pressed && image_bounds.contains(mouse::pos_x, mouse::pos_y)) {
             // Update displacement map using the brush and the mouse position and movement, then update current image:
-            vec2 displacement_inc, old_displacement, new_displacement;
-            for (i32 dy = -brush.radius; dy < brush.radius; dy++)
-                for (i32 dx = -brush.radius; dx < brush.radius; dx++) {
-                    i32 x = mouse::pos_x + dx;
-                    i32 y = mouse::pos_y + dy;
-                    if (!image_bounds.contains(x, y))
+
+            RectI bounds;
+            bounds.left = bounds.top = -(i32)particle_brush.radius;
+            bounds.right = bounds.bottom = (i32)particle_brush.radius - 1;
+            bounds.x_range += mouse::pos_x;
+            bounds.y_range += mouse::pos_y;
+            bounds -= image_bounds;
+            if (!bounds) return;
+
+            vec2i screen_coord, pull, target, movement{mouse::movement_x, mouse::movement_y};
+            vec2 particle_sample, displacement, scaled_movement;
+            i32 pixel_offset;
+            f32 opacity;
+
+            for (screen_coord.y = bounds.top, particle_sample.y = (f32)(bounds.top - mouse::pos_y) + 0.5f;
+                 screen_coord.y <= bounds.bottom;
+                 screen_coord.y++, particle_sample.y += 1.0f) {
+                for (screen_coord.x = bounds.left, particle_sample.x = (f32)(bounds.left - mouse::pos_x) + 0.5f;
+                     screen_coord.x <= bounds.right;
+                     screen_coord.x++, particle_sample.x += 1.0f) {
+
+                    opacity = particle_brush.sample(particle_sample.length());
+                    if (opacity)
+                        scaled_movement = vec2{movement} * opacity;
+                    else
                         continue;
 
-                    i32 brush_x = Brush::MAX_BRUSH_RADIUS + dx;
-                    i32 brush_y = Brush::MAX_BRUSH_RADIUS + dy;
-                    f32 magnitude = brush.magnitudes[Brush::MAX_BRUSH_RADIUS*2 * brush_y + brush_x];
+                    pixel_offset = -1;
                     if (controls::is_pressed::ctrl) {
-                        if (magnitude) {
-                            i32 pixel_offset = (i32)image.width * y + x;
-                            Pixel &target_pixel = current.pixels[pixel_offset];
-                            vec2 &current_displacement = displacement_map[pixel_offset];
-                            new_displacement = current_displacement * (1.0f - magnitude);
-                            i32 pull_x = (i32)new_displacement.x + x;
-                            i32 pull_y = (i32)new_displacement.y + y;
-                            if (image_bounds.contains(pull_x, pull_y))
-                                target_pixel = image.pixels[(i32)image.width * pull_y + pull_x];
-                            else
-                                target_pixel.color = Black;
-                            current_displacement = new_displacement;
-                        }
+                        pixel_offset = (i32)image.width * screen_coord.y + screen_coord.x;
+                        displacement = displacement_map[pixel_offset] * (1.0f - opacity);
                     } else {
-                        displacement_inc = vec2{mouse::movement_x, mouse::movement_y} * magnitude;
-                        i32 target_x = (i32)displacement_inc.x + x;
-                        i32 target_y = (i32)displacement_inc.y + y;
-                        if (image_bounds.contains(target_x, target_y)) {
-                            i32 target_pixel_offset = (i32)image.width * target_y + target_x;
-                            Pixel &target_pixel = current.pixels[target_pixel_offset];
-                            vec2 &current_displacement = displacement_map[target_pixel_offset];
-                            new_displacement = current_displacement - displacement_inc;
-
-                            i32 pull_x = (i32)new_displacement.x + x;
-                            i32 pull_y = (i32)new_displacement.y + y;
-                            if (image_bounds.contains(pull_x, pull_y))
-                                target_pixel = image.pixels[(i32)image.width * pull_y + pull_x];
-                            else
-                                target_pixel.color = Black;
-
-                            current_displacement = new_displacement;
+                        target = screen_coord + scaled_movement;
+                        if (image_bounds.contains(target.x, target.y)) {
+                            pixel_offset = (i32)image.width * target.y + target.x;
+                            displacement = displacement_map[pixel_offset] - scaled_movement;
                         }
                     }
+
+                    if (pixel_offset != -1) {
+                        displacement_map[pixel_offset] = displacement;
+                        pull = screen_coord + displacement;
+                        if (image_bounds.contains(pull.x, pull.y))
+                            current.pixels[pixel_offset] = image.pixels[(i32)image.width * pull.y + pull.x];
+                        else
+                            current.pixels[pixel_offset].color = Black;
+                    }
                 }
+            }
         }
     }
 };
