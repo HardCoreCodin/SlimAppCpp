@@ -2,7 +2,7 @@
 
 #include "./brush.h"
 
-void runOnCPU(const Image &image, const Image &current, vec2 *displacement_map, const RectI &relevant_bounds, ParticleBrush &brush, bool displace) {
+void runOnCPU(const Image &image, const Image &current, vec2 *displacement_map, const RectI &relevant_bounds, ParticleBrush &brush) {
     for (i32 y = relevant_bounds.top;
          y <= relevant_bounds.bottom;
          y++) {
@@ -13,10 +13,7 @@ void runOnCPU(const Image &image, const Image &current, vec2 *displacement_map, 
             Pixel &pixel = current.pixels[pixel_offset];
             vec2 &displacement = displacement_map[pixel_offset];
 
-            if (displace)
-                brush.undisplace(pixel, x, y, image, displacement);
-            else
-                brush.displace(pixel, x, y, image, displacement);
+            brush.apply(pixel, x, y, image, displacement);
         }
     }
 };

@@ -7,11 +7,12 @@ struct DisplacementPainter : SlimApp {
     bool run_on_GPU = true;
     timers::Timer timer;
 
-    HUDLine TimerLine{(char*)"Micro Seconds  : ", Black};
-    HUDLine XPULine{  (char*)"CUDA GPU Mode  : ", (char*)"On",(char*)"Off",
+    HUDLine OperationLine{(char*)"Brush Type    : ", (char*)"Displace", Black};
+    HUDLine TimerLine{    (char*)"Micro Seconds : ", Black};
+    HUDLine XPULine{      (char*)"CUDA GPU Mode : ", (char*)"On",(char*)"Off",
                       &run_on_GPU, false, Green, Red, Black};
-    HUDSettings hud_settings{2};
-    HUD hud{hud_settings, &TimerLine};
+    HUDSettings hud_settings{3};
+    HUD hud{hud_settings, &OperationLine};
 
     Canvas canvas;
     ParticleBrush brush;
@@ -121,10 +122,8 @@ struct DisplacementPainter : SlimApp {
             relevant_bounds -= image_bounds;
             if (!relevant_bounds) return;
 
-            bool displace = controls::is_pressed::ctrl;
-
             timer.beginFrame();
-            runOnXPU(image, current, displacement_map, relevant_bounds, brush, displace, run_on_GPU);
+            runOnXPU(image, current, displacement_map, relevant_bounds, brush, run_on_GPU);
             timer.endFrame();
             TimerLine.value = (i32)timer.microseconds;
         }
@@ -132,7 +131,12 @@ struct DisplacementPainter : SlimApp {
 
     void OnKeyChanged(u8 key, bool is_pressed) override {
         if (!is_pressed) {
-            if (key == controls::key_map::tab)
+            if (     key == '1') brush.operation = ParticleBrush::Operation::Displace;
+            else if (key == '2') brush.operation = ParticleBrush::Operation::Undisplace;
+            else if (key == '3') brush.operation = ParticleBrush::Operation::Pinch;
+            else if (key == '4') brush.operation = ParticleBrush::Operation::Expand;
+            else if (key == '5') brush.operation = ParticleBrush::Operation::Twirl;
+            else if (key == controls::key_map::tab)
                 hud.enabled = !hud.enabled;
             else if (key == 'X') {
                 run_on_GPU = (USE_GPU_BY_DEFAULT ? !run_on_GPU : false);
@@ -140,6 +144,13 @@ struct DisplacementPainter : SlimApp {
                     uploadCurrent(current, displacement_map);
                     uploadBrushParticlePositions(brush.particle_positions);
                 }
+            }
+            switch (brush.operation) {
+                case ParticleBrush::Operation::Displace: OperationLine.value.string.char_ptr = (char*)"Displace"; break;
+                case ParticleBrush::Operation::Undisplace: OperationLine.value.string.char_ptr = (char*)"Undisplace"; break;
+                case ParticleBrush::Operation::Pinch: OperationLine.value.string.char_ptr = (char*)"Pinch"; break;
+                case ParticleBrush::Operation::Expand: OperationLine.value.string.char_ptr = (char*)"Expand"; break;
+                case ParticleBrush::Operation::Twirl: OperationLine.value.string.char_ptr = (char*)"Twirl"; break;
             }
         }
     }

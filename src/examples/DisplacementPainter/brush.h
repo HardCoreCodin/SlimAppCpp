@@ -6,6 +6,11 @@ struct ParticleBrush {
     static constexpr i32 MAX_RADIUS = 60;
     static constexpr i32 MAX_PARTICLES = 8;
 
+    enum Operation {Displace, Undisplace, Pinch, Expand, Twirl};
+
+    Operation operation = Displace;
+
+    mat2 twirl_rotation = mat2{}.rotated_by(10 * DEG_TO_RAD);
     vec2 movement, *particle_positions;
     f32 radius = 60.0f;
     f32 opacity = 0.2f;
@@ -65,6 +70,78 @@ struct ParticleBrush {
             displacement = new_displacement;
 
             updatePixel(pixel, at + new_displacement, image);
+        }
+    }
+
+    INLINE_XPU void pinch(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+        vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
+        vec2 new_displacement{0.0f};
+        for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
+            f32 magnitude = sample(at + new_displacement, particle_index);
+            if (magnitude == 0.0f)
+                break;
+
+            vec2 v = at - particle_positions[particle_index];
+            new_displacement += v * magnitude * opacity * 0.1f;
+        }
+
+        if (new_displacement.nonZero()) {
+            new_displacement += displacement;
+            displacement = new_displacement;
+
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+        }
+    }
+
+    INLINE_XPU void expand(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+        vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
+        vec2 new_displacement{0.0f};
+        for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
+            f32 magnitude = sample(at + new_displacement, particle_index);
+            if (magnitude == 0.0f)
+                break;
+
+            vec2 v = at - particle_positions[particle_index];
+            new_displacement -= v * magnitude * opacity * 0.1f;
+        }
+
+        if (new_displacement.nonZero()) {
+            new_displacement += displacement;
+            displacement = new_displacement;
+
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+        }
+    }
+
+    INLINE_XPU void twirl(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+        vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
+        vec2 new_displacement{0.0f};
+        for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
+            f32 magnitude = sample(at + new_displacement, particle_index);
+            if (magnitude == 0.0f)
+                break;
+
+            vec2 v1 = at - particle_positions[particle_index];
+            vec2 v2 = twirl_rotation * v1;
+            vec2 v = v2 - v1;
+            new_displacement += v * magnitude * 0.1f;
+        }
+
+        if (new_displacement.nonZero()) {
+            new_displacement += displacement;
+            displacement = new_displacement;
+
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+        }
+    }
+
+    XPU void apply(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+        switch (operation) {
+            case Displace: return displace(pixel, x, y, image, displacement);
+            case Undisplace: return undisplace(pixel, x, y, image, displacement);
+            case Pinch: return pinch(pixel, x, y, image, displacement);
+            case Expand: return expand(pixel, x, y, image, displacement);
+            case Twirl: return twirl(pixel, x, y, image, displacement);
         }
     }
 

@@ -6,9 +6,9 @@
 #include "./brushGPU.h"
 #define USE_GPU_BY_DEFAULT true
 
-void runOnXPU(const Image &image, const Image &current, vec2 *displacement_map, const RectI &relevant_bounds, ParticleBrush &brush, bool displace, bool on_gpu = false) {
-    if (on_gpu) runOnGPU(image, current, displacement_map, relevant_bounds, brush, displace);
-    else        runOnCPU(image, current, displacement_map, relevant_bounds, brush, displace);
+void runOnXPU(const Image &image, const Image &current, vec2 *displacement_map, const RectI &relevant_bounds, ParticleBrush &brush, bool on_gpu = false) {
+    if (on_gpu) runOnGPU(image, current, displacement_map, relevant_bounds, brush);
+    else        runOnCPU(image, current, displacement_map, relevant_bounds, brush);
 }
 
 #else
