@@ -196,36 +196,37 @@ INLINE_XPU f32 approach(f32 src, f32 trg, f32 diff) {
 }
 
 template <typename T>
-INLINE void swap(T *a, T *b) {
+INLINE_XPU void swap(T *a, T *b) {
     T t = *a;
     *a = *b;
     *b = t;
 }
 
+
 template <typename T>
 struct RangeOf {
     T first, last;
 
-    RangeOf() : RangeOf{0, 0} {}
-    RangeOf(T first, T last) : first{first}, last{last} {}
-    RangeOf(const RangeOf<T> &other) : RangeOf{other.first, other.last} {}
+    INLINE_XPU RangeOf() : RangeOf{0, 0} {}
+    INLINE_XPU RangeOf(T first, T last) : first{first}, last{last} {}
+    INLINE_XPU RangeOf(const RangeOf<T> &other) : RangeOf{other.first, other.last} {}
 
-    INLINE bool contains(i32 v) const { return (first <= v) && (v <= last); }
-    INLINE bool bounds(i32 v) const { return (first < v) && (v < last); }
-    INLINE bool operator!() const { return last < first; }
-    INLINE bool operator[](T v) const { return contains(v); }
-    INLINE bool operator()(T v) const { return bounds(v); }
-    INLINE void operator+=(T offset) {first += offset; last += offset;}
-    INLINE void operator-=(T offset) {first -= offset; last -= offset;}
-    INLINE void operator*=(T factor) {first *= factor; last *= factor;}
-    INLINE void operator/=(T factor) {factor = 1 / factor; first *= factor; last *= factor;}
-    INLINE void operator-=(const RangeOf<T> &rhs) { sub(rhs.first, rhs.last); }
-    INLINE RangeOf<T> operator-(const RangeOf<T> &rhs) const {
+    INLINE_XPU bool contains(i32 v) const { return (first <= v) && (v <= last); }
+    INLINE_XPU bool bounds(i32 v) const { return (first < v) && (v < last); }
+    INLINE_XPU bool operator!() const { return last < first; }
+    INLINE_XPU bool operator[](T v) const { return contains(v); }
+    INLINE_XPU bool operator()(T v) const { return bounds(v); }
+    INLINE_XPU void operator+=(T offset) {first += offset; last += offset;}
+    INLINE_XPU void operator-=(T offset) {first -= offset; last -= offset;}
+    INLINE_XPU void operator*=(T factor) {first *= factor; last *= factor;}
+    INLINE_XPU void operator/=(T factor) {factor = 1 / factor; first *= factor; last *= factor;}
+    INLINE_XPU void operator-=(const RangeOf<T> &rhs) { sub(rhs.first, rhs.last); }
+    INLINE_XPU RangeOf<T> operator-(const RangeOf<T> &rhs) const {
         RangeOf<T> result{first, last};
         result.sub(rhs.first, rhs.last);
         return result;
     }
-    INLINE void sub(T sub_first, T sub_last) {
+    INLINE_XPU void sub(T sub_first, T sub_last) {
         if (sub_last < sub_first) {
             T tmp = sub_last;
             sub_last = sub_first;
@@ -257,33 +258,33 @@ struct RectOf {
         };
     };
 
-    RectOf(const RectOf<T> &other) : RectOf{other.x_range, other.y_range} {}
-    RectOf(const RangeOf<T> &x_range, const RangeOf<T> &y_range) : x_range{x_range}, y_range{y_range} {}
-    RectOf(T left = 0, T right = 0, T top = 0, T bottom = 0) : left{left}, right{right}, top{top}, bottom{bottom} {
+    INLINE_XPU RectOf(const RectOf<T> &other) : RectOf{other.x_range, other.y_range} {}
+    INLINE_XPU RectOf(const RangeOf<T> &x_range, const RangeOf<T> &y_range) : x_range{x_range}, y_range{y_range} {}
+    INLINE_XPU RectOf(T left = 0, T right = 0, T top = 0, T bottom = 0) : left{left}, right{right}, top{top}, bottom{bottom} {
         if (right < left) swap(&right, &left);
         if (bottom < top) swap(&top, &bottom);
     }
 
-    INLINE bool contains(T x, T y) const { return x_range.contains(x) && y_range.contains(y); }
-    INLINE bool bounds(T x, T y) const { return x_range.bounds(x) && y_range.bounds(y); }
-    INLINE bool operator!() const { return !x_range || !y_range; }
-    INLINE bool isOutsideOf(const RectOf<T> &other) {
+    INLINE_XPU bool contains(T x, T y) const { return x_range.contains(x) && y_range.contains(y); }
+    INLINE_XPU bool bounds(T x, T y) const { return x_range.bounds(x) && y_range.bounds(y); }
+    INLINE_XPU bool operator!() const { return !x_range || !y_range; }
+    INLINE_XPU bool isOutsideOf(const RectOf<T> &other) {
         return (
                 other.right < left || right < other.left ||
                 other.bottom < top || bottom < other.top
         );
     }
-    INLINE void operator+=(T offset) {x_range += offset; y_range += offset;}
-    INLINE void operator-=(T offset) {x_range -= offset; y_range -= offset;}
-    INLINE void operator*=(T factor) {x_range *= factor; y_range *= factor;}
-    INLINE void operator/=(T factor) {x_range /= factor; y_range /= factor;}
-    INLINE void operator-=(const RectOf<T> &rhs) { sub(rhs.x_range, rhs.y_range); }
-    INLINE RectOf<T> operator-(const RectOf<T> &rhs) const {
+    INLINE_XPU void operator+=(T offset) {x_range += offset; y_range += offset;}
+    INLINE_XPU void operator-=(T offset) {x_range -= offset; y_range -= offset;}
+    INLINE_XPU void operator*=(T factor) {x_range *= factor; y_range *= factor;}
+    INLINE_XPU void operator/=(T factor) {x_range /= factor; y_range /= factor;}
+    INLINE_XPU void operator-=(const RectOf<T> &rhs) { sub(rhs.x_range, rhs.y_range); }
+    INLINE_XPU RectOf<T> operator-(const RectOf<T> &rhs) const {
         RectOf<T> result{x_range, y_range};
         result.sub(rhs.x_range, rhs.y_range);
         return result;
     }
-    INLINE void sub(const RangeOf<T> &other_x_range, const RangeOf<T> &other_y_range) {
+    INLINE_XPU void sub(const RangeOf<T> &other_x_range, const RangeOf<T> &other_y_range) {
         x_range -= other_x_range;
         y_range -= other_y_range;
     }
@@ -775,6 +776,8 @@ struct TiledGridInfo {
     u32 tile_y = 0;
     u32 column = 0;
     u32 row = 0;
+    u32 x = 0;
+    u32 y = 0;
 
     INLINE_XPU TiledGridInfo(const TiledGridDimensions &dim) :
             tile_width{dim.tile_width},
@@ -795,19 +798,29 @@ struct TiledGridInfo {
         row_size = right_column * tile_size + right_column_tile_size;
     }
 
-    INLINE_XPU void setCoords(u32 x, u32 y) {
+    INLINE_XPU void setCoords(u32 X, u32 Y) {
+        x = X;
+        y = Y;
         tile_x = x % tile_width;
         tile_y = y % tile_height;
         column = x / tile_width;
         row    = y / tile_height;
     }
 
-    INLINE_XPU u32 getOffset(u32 x, u32 y) {
-        setCoords(x, y);
+    INLINE_XPU void updateGlobalCoords() {
+        x = tile_x + column * tile_width;
+        y = tile_y + row * tile_height;
+    }
 
+    INLINE_XPU u32 getOffset() const {
         u32 row_tile_stride = column == right_column ? right_column_tile_stride : tile_width;
         u32 row_tile_size = row == bottom_row ? bottom_row_tile_size : tile_size;
         return row * row_size + column * row_tile_size + row_tile_stride * tile_y + tile_x;
+    }
+
+    INLINE_XPU u32 getOffset(u32 X, u32 Y) {
+        setCoords(X, Y);
+        return getOffset();
     }
 };
 

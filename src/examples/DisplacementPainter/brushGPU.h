@@ -30,15 +30,18 @@ void uploadBrushParticlePositions(vec2 *particle_positions) {
     uploadN(particle_positions, d_particle_positions, ParticleBrush::MAX_PARTICLES)
 }
 
-__global__ void d_run(u32 width, u32 height, u32 pixel_count, RectI relevant_bounds, ParticleBrush brush, TiledGridInfo grid,
+__global__ void d_run(u32 width, u32 height, RectI relevant_bounds, ParticleBrush brush, TiledGridInfo grid,
                       ByteColor *image_pixels, ByteColor *current_pixels, vec2 *displacement_map, vec2 *particle_positions) {
-    u32 i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i >= pixel_count)
-        return;
 
-    i32 stride = relevant_bounds.right - relevant_bounds.left + 1;
-    i32 x = relevant_bounds.left + (i32)i % stride;
-    i32 y = relevant_bounds.top + (i32)i / stride;
+    grid.tile_x = threadIdx.x;
+    grid.tile_y = threadIdx.y;
+    grid.column = blockIdx.x;
+    grid.row    = blockIdx.y;
+    grid.updateGlobalCoords();
+    const i32 x = (i32)grid.x;
+    const i32 y = (i32)grid.y;
+    if (!relevant_bounds.contains(x, y))
+        return;
 
     ByteColorImage image;
     image.width = width;
@@ -46,24 +49,21 @@ __global__ void d_run(u32 width, u32 height, u32 pixel_count, RectI relevant_bou
     image.content = image_pixels;
     brush.particle_positions = particle_positions;
 
-    u32 pixel_offset = grid.getOffset(x, y);
+    u32 pixel_offset = grid.getOffset();
     ByteColor &pixel = current_pixels[pixel_offset];
     vec2 &displacement = displacement_map[pixel_offset];
 
     brush.apply(pixel, x, y, image, grid, displacement);
 }
 
-template <typename T> void runOnGPU(const Image<T> &image, const Image<T> &current, TiledGridInfo &grid, vec2 *displacement_map, const RectI &relevant_bounds, ParticleBrush &brush) {
-    u32 pixel_count = (relevant_bounds.right - relevant_bounds.left + 1) * (relevant_bounds.bottom - relevant_bounds.top + 1);
-    u32 threads = 512;
-    u32 blocks  = pixel_count / threads;
-    if (pixel_count < threads) {
-        threads = pixel_count;
-        blocks = 1;
-    } else if (pixel_count % threads)
-        blocks++;
+template <typename T> void runOnGPU(const Image<T> &image, const Image<T> &current, TiledGridInfo &tiled_grid, vec2 *displacement_map, const RectI &relevant_bounds, ParticleBrush &brush) {
+    dim3 dimBlock, dimGrid;
+    dimBlock.x = image.tile_width;
+    dimBlock.y= image.tile_height;
+    dimGrid.x = tiled_grid.columns;
+    dimGrid.y = tiled_grid.rows;
 
-    d_run<<<blocks, threads>>>(image.width, image.height, pixel_count, relevant_bounds, brush, grid,
+    d_run<<<dimGrid, dimBlock>>>(image.width, image.height, relevant_bounds, brush, tiled_grid,
                                d_image_pixels, d_current_pixels, d_displacement_map, d_particle_positions);
 
     checkErrors()

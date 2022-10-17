@@ -151,7 +151,7 @@ u8* loadBitmap(char *filename, ImageInfo &info) {
     }
 
     if (info.flags.tile) {
-        info.updateTileDimensions(128, 128);
+        info.updateTileDimensions(8, 4);
         tileImage(components, info, scratch_components);
         for (u32 i = 0; i < size_in_bytes; i++) components[i] = scratch_components[i];
     }
