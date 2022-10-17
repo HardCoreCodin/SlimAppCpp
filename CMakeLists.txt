@@ -36,6 +36,9 @@ add_executable(painting WIN32 src/examples/painting.cpp)
 project(viz)
 add_executable(viz WIN32 src/examples/ray_circle_visualization/viz.cpp)
 
+project(curves)
+add_executable(curves WIN32 src/examples/curves.cpp)
+
 project(bmp2texture)
 add_executable(bmp2texture src/bmp2texture.cpp)
 

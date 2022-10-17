@@ -10,7 +10,7 @@ struct DisplacementPainter : SlimApp {
     HUDLine OperationLine{(char*)"Brush Type    : ", (char*)"Displace", Black};
     HUDLine TimerLine{    (char*)"Micro Seconds : ", Black};
     HUDLine XPULine{      (char*)"CUDA GPU Mode : ", (char*)"On",(char*)"Off",
-                      &run_on_GPU, false, Green, Red, Black};
+                      &run_on_GPU, true, Green, Red, Black};
     HUDSettings hud_settings{3};
     HUD hud{hud_settings, &OperationLine};
 
@@ -19,11 +19,11 @@ struct DisplacementPainter : SlimApp {
     vec2 brush_particle_positions[ParticleBrush::MAX_PARTICLES];
 
     char *files[2]{(char*)"input.image", (char*)"input.image"};
-    Image image, current;
-    ImagePack image_pack{2, &image, files, (char*)__FILE__};
+    ByteColorImage image, current;
+    ImagePack<ByteColor> image_pack{2, &image, files, (char*)__FILE__};
     RectI image_bounds{0, (i32)image.width - 1, 0, (i32)image.height - 1};
     vec2 *displacement_map = new vec2[image.width * image.height];
-
+    TiledGridInfo grid{image};
 
     DisplacementPainter() {
         brush.particle_positions = brush_particle_positions;
@@ -44,18 +44,31 @@ struct DisplacementPainter : SlimApp {
         f32 magnitude;
         vec2 displacement;
         Color color = Black;
-        for (u32 y = 0; y < image.height; y++)
-            for (u32 x = 0; x < image.width; x++) {
-                displacement = displacement_map[(i32)image.width * y + x];
-                if (displacement.nonZero()) {
-                    magnitude = displacement.length();
-                    displacement /= magnitude;
-                    color.red   = displacement.x * 0.5f + 0.5f;
-                    color.green = displacement.y * 0.5f + 0.5f;
-                    color *= magnitude * 0.01f;
-                    canvas.pixels[canvas.dimensions.width * (image.height + y) + x].color = color.clamped();
-                }
+
+        u32 X, Y = 0, offset = 0;
+        for (grid.row = 0; grid.row < grid.rows; grid.row++) {
+            X = 0;
+            u32 tile_height = grid.row == grid.bottom_row ? grid.bottom_row_tile_height : image.tile_height;
+            for (grid.column = 0; grid.column < grid.columns; grid.column++) {
+                u32 tile_width = grid.column == grid.right_column ? grid.right_column_tile_stride : image.tile_width;
+
+                for (u32 y = 0; y < tile_height; y++)
+                    for (u32 x = 0; x < tile_width; x++) {
+                        displacement = displacement_map[offset++];
+                        if (displacement.nonZero()) {
+                            magnitude = displacement.length();
+                            displacement /= magnitude;
+                            color.red   = displacement.x * 0.5f + 0.5f;
+                            color.green = displacement.y * 0.5f + 0.5f;
+                            color *= magnitude * 0.01f;
+                            canvas.pixels[canvas.dimensions.width * (image.height + Y + y) + X + x].color = color.clamped();
+                        }
+                    }
+
+                X += image.tile_width;
             }
+            Y += image.tile_height;
+        }
 
         if (image_bounds.contains(mouse::pos_x, mouse::pos_y)) {
             color = controls::is_pressed::ctrl ? Green : Red;
@@ -75,6 +88,8 @@ struct DisplacementPainter : SlimApp {
 
         if (hud.enabled) drawHUD(hud, canvas);
         canvas.drawToWindow();
+
+//        drawImageToWindow(current, image_bounds);
 
         RectI draw_bounds;
         draw_bounds.left = (i32)image.width;
@@ -123,7 +138,7 @@ struct DisplacementPainter : SlimApp {
             if (!relevant_bounds) return;
 
             timer.beginFrame();
-            runOnXPU(image, current, displacement_map, relevant_bounds, brush, run_on_GPU);
+            runOnXPU(image, current, grid, displacement_map, relevant_bounds, brush, run_on_GPU);
             timer.endFrame();
             TimerLine.value = (i32)timer.microseconds;
         }

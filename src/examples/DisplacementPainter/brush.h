@@ -16,6 +16,7 @@ struct ParticleBrush {
     f32 opacity = 0.2f;
     u8 active_particles = 1;
 
+
     INLINE_XPU f32 sample(f32 distance) const {
         return 1.0f - smoothStep(distance / radius);
     }
@@ -28,17 +29,18 @@ struct ParticleBrush {
         return sample(at, particle_positions[particle_index]);
     }
 
-    INLINE_XPU static void updatePixel(Pixel &target_pixel, vec2 at, const Image &image) {
+    template <typename T>
+    INLINE_XPU static void updatePixel(T &target_pixel, vec2 at, const Image<T> &image, TiledGridInfo &grid) {
         i32 x = (i32)at.x;
         i32 y = (i32)at.y;
+        i32 w = (i32)image.width;
+        i32 h = (i32)image.height;
 
-        if (x >= 0 && x < (i32)image.width && y >= 0 && y < (i32)image.height)
-            target_pixel = image.pixels[image.width * (u32)y + (u32)x];
-        else
-            target_pixel.color = Black;
+        target_pixel = x >= 0 && x < w && y >= 0 && y < h ? image.content[grid.getOffset(x, y)] : T{};
     }
 
-    INLINE_XPU void displace(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+    template <typename T>
+    INLINE_XPU void displace(T &pixel, i32 x, i32 y, const Image<T> &image, TiledGridInfo &grid, vec2 &displacement) {
         vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
         vec2 new_displacement{0.0f};
         for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
@@ -53,11 +55,12 @@ struct ParticleBrush {
             new_displacement += displacement;
             displacement = new_displacement;
 
-            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image, grid);
         }
     }
 
-    INLINE_XPU void undisplace(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+    template <typename T>
+    INLINE_XPU void undisplace(T &pixel, i32 x, i32 y, const Image<T> &image, TiledGridInfo &grid, vec2 &displacement) {
         vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
 
         f32 magnitude = 0;
@@ -69,11 +72,12 @@ struct ParticleBrush {
             new_displacement *= 1.0f - clampedValue(magnitude * opacity);
             displacement = new_displacement;
 
-            updatePixel(pixel, at + new_displacement, image);
+            updatePixel(pixel, at + new_displacement, image, grid);
         }
     }
 
-    INLINE_XPU void pinch(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+    template <typename T>
+    INLINE_XPU void pinch(T &pixel, i32 x, i32 y, const Image<T> &image, TiledGridInfo &grid, vec2 &displacement) {
         vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
         vec2 new_displacement{0.0f};
         for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
@@ -89,11 +93,12 @@ struct ParticleBrush {
             new_displacement += displacement;
             displacement = new_displacement;
 
-            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image, grid);
         }
     }
 
-    INLINE_XPU void expand(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+    template <typename T>
+    INLINE_XPU void expand(T &pixel, i32 x, i32 y, const Image<T> &image, TiledGridInfo &grid, vec2 &displacement) {
         vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
         vec2 new_displacement{0.0f};
         for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
@@ -109,11 +114,12 @@ struct ParticleBrush {
             new_displacement += displacement;
             displacement = new_displacement;
 
-            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image, grid);
         }
     }
 
-    INLINE_XPU void twirl(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+    template <typename T>
+    INLINE_XPU void twirl(T &pixel, i32 x, i32 y, const Image<T> &image, TiledGridInfo &grid, vec2 &displacement) {
         vec2 at{(f32)x + 0.5f, (f32)y + 0.5f};
         vec2 new_displacement{0.0f};
         for (i32 particle_index = active_particles - 1; particle_index >= 0; particle_index--) {
@@ -131,17 +137,18 @@ struct ParticleBrush {
             new_displacement += displacement;
             displacement = new_displacement;
 
-            ParticleBrush::updatePixel(pixel, at + new_displacement, image);
+            ParticleBrush::updatePixel(pixel, at + new_displacement, image, grid);
         }
     }
 
-    XPU void apply(Pixel &pixel, i32 x, i32 y, const Image &image, vec2 &displacement) {
+    template <typename T>
+    XPU void apply(T &pixel, i32 x, i32 y, const Image<T> &image, TiledGridInfo &grid, vec2 &displacement) {
         switch (operation) {
-            case Displace: return displace(pixel, x, y, image, displacement);
-            case Undisplace: return undisplace(pixel, x, y, image, displacement);
-            case Pinch: return pinch(pixel, x, y, image, displacement);
-            case Expand: return expand(pixel, x, y, image, displacement);
-            case Twirl: return twirl(pixel, x, y, image, displacement);
+            case Displace: return displace(pixel, x, y, image, grid, displacement);
+            case Undisplace: return undisplace(pixel, x, y, image, grid, displacement);
+            case Pinch: return pinch(pixel, x, y, image, grid, displacement);
+            case Expand: return expand(pixel, x, y, image, grid, displacement);
+            case Twirl: return twirl(pixel, x, y, image, grid, displacement);
         }
     }
 
