@@ -167,8 +167,8 @@ void drawImage(const ByteColorImage &image, const Canvas &canvas, RectI bounds, 
         }
     } else {
         i32 remainder_x = (i32)image.stride - width;
-        for (i32 y = bounds.top; y <= bounds.bottom; y++) {
-            for (i32 x = bounds.left; x <= bounds.right; x++, byte_color++) {
+        for (i32 y = bounds.top; y < bounds.bottom; y++) {
+            for (i32 x = bounds.left; x < bounds.right; x++, byte_color++) {
                 pixel = *byte_color;
                 canvas.setPixel(x, y, pixel.color, image.flags.alpha ? (pixel.opacity * opacity) : opacity);
             }

@@ -1,6 +1,6 @@
 #pragma once
 
-#define SLIM_APP_SHF
+#define SLIM_SINGLE_HEADER_FILE
 
 #include <cmath>
 
@@ -11,6 +11,7 @@
 #elif defined(__GNUC__) || defined(__GNUG__)
     #define COMPILER_GCC 1
     #define COMPILER_CLANG_OR_GCC 1
+    #include <new>
 #elif defined(_MSC_VER)
     #define COMPILER_MSVC 1
 #endif
